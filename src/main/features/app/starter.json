@@ -1,8 +1,7 @@
 {
     "bundles": [
-        // Blockchain AEM: Using our custom starter JAR for content
         {
-            "id":"org.apache.sling:org.apache.sling.starter:14-SNAPSHOT",
+            "id":"org.apache.sling:org.apache.sling.starter.content:2.0.2",
             "start-order":"20"
         }
     ],
