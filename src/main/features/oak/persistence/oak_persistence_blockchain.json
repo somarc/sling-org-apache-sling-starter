@@ -5,7 +5,11 @@
             "start-order":"15"
         },
         {
-            "id":"org.apache.jackrabbit:oak-segment-consensus:${oak.version}",
+            "id":"org.apache.jackrabbit:oak-segment-remote:${oak.version}",
+            "start-order":"15"
+        },
+        {
+            "id":"org.apache.jackrabbit:oak-segment-http:${oak.version}",
             "start-order":"16"
         },
         {
@@ -24,8 +28,12 @@
             "name":"Global Blockchain Store",
             "role":"composite-mount-oak-chain-global",
             "repository.home":"/mnt/oak-chain",
-            "customBlobStore":false,
-            "standby":true
+            "customBlobStore":false
+        },
+        "org.apache.jackrabbit.oak.composite.MountInfoProviderService":{
+            "mountedPaths":["/oak-chain"],
+            "mountName":"oak-chain-global",
+            "readOnlyMount":false
         },
         "org.apache.jackrabbit.oak.composite.CompositeNodeStoreService":{
             "enableChecks":true,
