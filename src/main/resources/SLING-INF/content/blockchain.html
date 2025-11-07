@@ -320,11 +320,49 @@ under the License.
         </div>
 
         <div class="card chain-content">
+            <h2>🔍 Browse Global Chain</h2>
+            <p style="color: #666; margin-bottom: 20px;">Connect to the GlobalStoreServer and view the genesis content via HTTP Segment Transfer</p>
+            <button onclick="browseGlobalChain()" style="width: auto; margin-bottom: 20px;">
+                🌐 Load Genesis Content from Global Store
+            </button>
+            <div id="globalChainStatus" class="alert" style="display: none;"></div>
+            <div id="globalChainContent" style="display: none;">
+                <h3 style="margin: 20px 0 10px 0; color: #333;">Connection Status</h3>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 10px;">
+                        <strong>Server URL:</strong> <span id="serverUrl" style="font-family: monospace;"></span>
+                        <strong>Status:</strong> <span id="serverStatus"></span>
+                        <strong>Protocol:</strong> <span id="serverProtocol"></span>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 20px 0 10px 0; color: #333;">Genesis Content</h3>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #48bb78;">
+                    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 10px;">
+                        <strong>Path:</strong> <span id="genesisPath" style="font-family: monospace;"></span>
+                        <strong>Message:</strong> <span id="genesisMessage" style="font-size: 1.2rem; font-weight: 600; color: #667eea;"></span>
+                        <strong>Description:</strong> <span id="genesisDescription"></span>
+                        <strong>Author:</strong> <span id="genesisAuthor"></span>
+                        <strong>Version:</strong> <span id="genesisVersion"></span>
+                        <strong>Storage:</strong> <span id="genesisNote" style="font-size: 0.9rem; color: #666;"></span>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 20px 0 10px 0; color: #333;">Capabilities</h3>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px;">
+                    <ul id="capabilitiesList" style="list-style: none;">
+                        <!-- Populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card chain-content">
             <h2>🌐 Content on Global Chain</h2>
             <ul class="content-list" id="chainContentList">
                 <li class="content-item">
-                    <span class="content-path">/oak-chain/content/... (pending sync)</span>
-                    <span class="status-badge status-published">ON CHAIN</span>
+                    <span class="content-path">/oak-chain/content/genesis (DO IT LIVE!)</span>
+                    <span class="status-badge status-published">GENESIS BLOCK</span>
                 </li>
             </ul>
         </div>
@@ -427,6 +465,99 @@ under the License.
             // Increment publish count
             const countEl = document.getElementById('publishCount');
             countEl.textContent = parseInt(countEl.textContent) + 1;
+        }
+
+        async function browseGlobalChain() {
+            const statusEl = document.getElementById('globalChainStatus');
+            const contentEl = document.getElementById('globalChainContent');
+            
+            // Show loading
+            statusEl.className = 'alert';
+            statusEl.textContent = '⏳ Connecting to GlobalStoreServer via HTTP Segment Transfer...';
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#e6fffa';
+            statusEl.style.color = '#234e52';
+            statusEl.style.borderLeft = '4px solid #38b2ac';
+            contentEl.style.display = 'none';
+
+            try {
+                const response = await fetch('/bin/blockchain/browse');
+                const data = await response.json();
+
+                if (data.status === 'CONNECTED') {
+                    // Success - show genesis content
+                    statusEl.className = 'alert success';
+                    statusEl.textContent = '✅ ' + data.message;
+                    statusEl.style.display = 'block';
+                    
+                    // Populate connection status
+                    document.getElementById('serverUrl').textContent = data.globalStore.url;
+                    document.getElementById('serverStatus').innerHTML = 
+                        `<span style="color: #48bb78; font-weight: 600;">● CONNECTED</span>`;
+                    document.getElementById('serverProtocol').textContent = data.globalStore.protocol;
+                    
+                    // Populate genesis content
+                    document.getElementById('genesisPath').textContent = data.genesis.path;
+                    document.getElementById('genesisMessage').textContent = data.genesis.message;
+                    document.getElementById('genesisDescription').textContent = data.genesis.description;
+                    document.getElementById('genesisAuthor').textContent = data.genesis.author;
+                    document.getElementById('genesisVersion').textContent = data.genesis.version;
+                    document.getElementById('genesisNote').textContent = data.genesis.note;
+                    
+                    // Populate capabilities
+                    const capList = document.getElementById('capabilitiesList');
+                    capList.innerHTML = '';
+                    if (data.capabilities) {
+                        const caps = [
+                            { key: 'httpSegmentTransfer', label: 'HTTP Segment Transfer', value: data.capabilities.httpSegmentTransfer },
+                            { key: 'genesisContent', label: 'Genesis Content', value: data.capabilities.genesisContent },
+                            { key: 'byodModel', label: 'BYOD Binary Storage', value: data.capabilities.byodModel },
+                        ];
+                        caps.forEach(cap => {
+                            const li = document.createElement('li');
+                            li.style.padding = '8px 0';
+                            li.innerHTML = `<span style="color: ${cap.value ? '#48bb78' : '#f56565'}; font-weight: 600;">` +
+                                `${cap.value ? '✓' : '✗'}</span> ${cap.label}`;
+                            capList.appendChild(li);
+                        });
+                        // Add consensus protocol
+                        const protocolLi = document.createElement('li');
+                        protocolLi.style.padding = '8px 0';
+                        protocolLi.innerHTML = `<strong>Consensus:</strong> ${data.capabilities.consensusProtocol}`;
+                        capList.appendChild(protocolLi);
+                    }
+                    
+                    // Show content
+                    contentEl.style.display = 'block';
+                    
+                    // Update node count stat
+                    document.getElementById('nodeCount').textContent = '1';
+                    
+                    // Hide status after 3 seconds
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                    
+                } else if (data.status === 'DISCONNECTED') {
+                    // Connection failed
+                    statusEl.className = 'alert error';
+                    statusEl.textContent = '❌ ' + data.message;
+                    if (data.troubleshooting) {
+                        statusEl.innerHTML += `<br><br><strong>Troubleshooting:</strong><br>` +
+                            `<code style="background: white; padding: 2px 8px; border-radius: 4px; display: block; margin-top: 5px;">` +
+                            `${data.troubleshooting.checkServer}</code>`;
+                    }
+                } else {
+                    // Error
+                    statusEl.className = 'alert error';
+                    statusEl.textContent = '❌ Error: ' + (data.message || 'Unknown error');
+                }
+                
+            } catch (error) {
+                statusEl.className = 'alert error';
+                statusEl.textContent = '❌ Network error: ' + error.message;
+                statusEl.style.display = 'block';
+            }
         }
     </script>
 </body>
