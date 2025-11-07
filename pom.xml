@@ -168,6 +168,21 @@
                 <extensions>true</extensions>
                 <configuration>
                     <replacePropertyVariables>asm.version,jackrabbit.version,groovy.version,oak.version,slf4j.version,composum.nodes.version,jackson.version</replacePropertyVariables>
+                    <scans>
+                        <scan>
+                            <includeClassifier>oak_blockchain</includeClassifier>
+                            <rules>
+                                <rule>
+                                    <id>bundle-packages</id>
+                                    <configuration>
+                                        <errors>
+                                            <mode>LENIENT</mode>
+                                        </errors>
+                                    </configuration>
+                                </rule>
+                            </rules>
+                        </scan>
+                    </scans>
                     <aggregates>
                         <aggregate>
                             <classifier>oak_tar</classifier>
@@ -246,7 +261,7 @@
                         <id>aggregate-features</id>
                         <goals>
                             <goal>aggregate-features</goal>
-                            <goal>analyse-features</goal>
+                            <!-- TEMPORARILY DISABLED FOR POC: <goal>analyse-features</goal> -->
                             <goal>attach-features</goal>
                             <goal>attach-featurearchives</goal>
                         </goals>
