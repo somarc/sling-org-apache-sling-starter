@@ -33,7 +33,8 @@
         "org.apache.jackrabbit.oak.composite.MountInfoProviderService":{
             "mountedPaths":["/oak-chain"],
             "mountName":"oak-chain-global",
-            "readOnlyMount":false
+            "pathsSupportingFragments":["/oak:index/*$"],
+            "readOnlyMount":true
         },
         "org.apache.jackrabbit.oak.composite.CompositeNodeStoreService":{
             "enableChecks":true,
