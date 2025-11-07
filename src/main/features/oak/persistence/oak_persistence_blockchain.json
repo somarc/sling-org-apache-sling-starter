@@ -1,4 +1,8 @@
 {
+    "framework-properties":{
+        "org.apache.sling.commons.log.level":"DEBUG",
+        "org.apache.sling.commons.log.pattern":"{0,date,dd.MM.yyyy HH:mm:ss.SSS} *{4}* [{2}] {3} {5}"
+    },
     "bundles":[
         {
             "id":"org.apache.jackrabbit:oak-segment-tar:${oak.version}",
@@ -18,27 +22,47 @@
         }
     ],
     "configurations":{
-        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService~default":{
+        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~default":{
             "name":"Default NodeStore",
             "role":"composite-global",
-            "repository.home":"./repository",
+            "repository.home":"launcher/repository",
             "customBlobStore":false
         },
-        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService~global-chain":{
+        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~oak-chain":{
             "name":"Global Blockchain Store",
-            "role":"composite-mount-oak-chain-global",
+            "role":"composite-mount-oak-chain",
             "repository.home":"/mnt/oak-chain",
-            "customBlobStore":false
+            "customBlobStore":false,
+            "tarmk.mode":"64"
         },
         "org.apache.jackrabbit.oak.composite.MountInfoProviderService":{
             "mountedPaths":["/oak-chain"],
-            "mountName":"oak-chain-global",
+            "mountName":"oak-chain",
             "pathsSupportingFragments":["/oak:index/*$"],
             "readOnlyMount":true
         },
         "org.apache.jackrabbit.oak.composite.CompositeNodeStoreService":{
-            "enableChecks":true,
-            "pathStats":false
+            "seedMount":"oak-chain",
+            "enabled":true,
+            "enableChecks":false,
+            "partialReadOnly":true
+        },
+        "org.apache.sling.commons.log.LogManager.factory.config~oak-composite":{
+            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.names":[
+                "org.apache.jackrabbit.oak.composite",
+                "org.apache.jackrabbit.oak.spi.mount"
+            ],
+            "org.apache.sling.commons.log.file":"logs/oak-composite.log",
+            "org.apache.sling.commons.log.additiv":true
+        },
+        "org.apache.sling.commons.log.LogManager.factory.config~oak-segment":{
+            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.names":[
+                "org.apache.jackrabbit.oak.segment"
+            ],
+            "org.apache.sling.commons.log.file":"logs/oak-segment.log",
+            "org.apache.sling.commons.log.additiv":true
         }
     }
 }
