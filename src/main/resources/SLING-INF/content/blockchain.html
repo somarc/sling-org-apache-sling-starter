@@ -1,0 +1,434 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain AEM - Decentralized Content Repository</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .wallet-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .wallet-info h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .wallet-id {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+            word-break: break-all;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 968px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+        }
+
+        .chain-content {
+            grid-column: 1 / -1;
+        }
+
+        .content-list {
+            list-style: none;
+        }
+
+        .content-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-item:hover {
+            background: #edf2f7;
+        }
+
+        .content-path {
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-published {
+            background: #48bb78;
+            color: white;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+
+        .alert.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat {
+            flex: 1;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⛓️ Blockchain AEM</h1>
+            <p class="tagline">Decentralized Content Repository on Oak + Ethereum</p>
+        </header>
+
+        <div class="wallet-info">
+            <h2>🔐 Your Wallet</h2>
+            <div class="wallet-id" id="walletId">Loading...</div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="publishCount">0</div>
+                    <div class="stat-label">Published</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="nodeCount">0</div>
+                    <div class="stat-label">Nodes</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">POC</div>
+                    <div class="stat-label">Network</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📤 Publish to Chain</h2>
+                <div class="alert success" id="publishSuccess"></div>
+                <div class="alert error" id="publishError"></div>
+                <form id="publishForm">
+                    <div class="form-group">
+                        <label for="publishPath">Content Path</label>
+                        <input type="text" id="publishPath" placeholder="/my-content" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publishTitle">Title</label>
+                        <input type="text" id="publishTitle" placeholder="My Amazing Content" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publishContent">Content</label>
+                        <textarea id="publishContent" placeholder="Enter your content here..." required></textarea>
+                    </div>
+                    <button type="submit">Publish to Global Store</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>🗑️ Unpublish from Chain</h2>
+                <div class="alert success" id="unpublishSuccess"></div>
+                <div class="alert error" id="unpublishError"></div>
+                <form id="unpublishForm">
+                    <div class="form-group">
+                        <label for="unpublishPath">Content Path</label>
+                        <input type="text" id="unpublishPath" placeholder="/oak-chain/content/..." required>
+                    </div>
+                    <button type="submit" class="secondary">Unpublish from Global Store</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card chain-content">
+            <h2>🌐 Content on Global Chain</h2>
+            <ul class="content-list" id="chainContentList">
+                <li class="content-item">
+                    <span class="content-path">/oak-chain/content/... (pending sync)</span>
+                    <span class="status-badge status-published">ON CHAIN</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate a mock wallet ID for POC
+            const walletId = generateMockWalletId();
+            document.getElementById('walletId').textContent = walletId;
+
+            // Publish form handler
+            document.getElementById('publishForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const path = document.getElementById('publishPath').value;
+                const title = document.getElementById('publishTitle').value;
+                const content = document.getElementById('publishContent').value;
+
+                const successAlert = document.getElementById('publishSuccess');
+                const errorAlert = document.getElementById('publishError');
+                successAlert.classList.remove('show');
+                errorAlert.classList.remove('show');
+
+                try {
+                    const response = await fetch('/bin/blockchain/publish', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `path=${encodeURIComponent(path)}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}`
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successAlert.textContent = `✅ Published to: ${result.path}`;
+                        successAlert.classList.add('show');
+                        document.getElementById('publishForm').reset();
+                        updateStats();
+                        setTimeout(() => successAlert.classList.remove('show'), 5000);
+                    } else {
+                        errorAlert.textContent = `❌ Error: ${result.error}`;
+                        errorAlert.classList.add('show');
+                    }
+                } catch (error) {
+                    errorAlert.textContent = `❌ Network error: ${error.message}`;
+                    errorAlert.classList.add('show');
+                }
+            });
+
+            // Unpublish form handler
+            document.getElementById('unpublishForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const path = document.getElementById('unpublishPath').value;
+                
+                const successAlert = document.getElementById('unpublishSuccess');
+                const errorAlert = document.getElementById('unpublishError');
+                successAlert.classList.remove('show');
+                errorAlert.classList.remove('show');
+
+                try {
+                    const response = await fetch('/bin/blockchain/unpublish', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `path=${encodeURIComponent(path)}&walletId=${encodeURIComponent(walletId)}`
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successAlert.textContent = `✅ Unpublished: ${result.path}`;
+                        successAlert.classList.add('show');
+                        document.getElementById('unpublishForm').reset();
+                        updateStats();
+                        setTimeout(() => successAlert.classList.remove('show'), 5000);
+                    } else {
+                        errorAlert.textContent = `❌ Error: ${result.error}`;
+                        errorAlert.classList.add('show');
+                    }
+                } catch (error) {
+                    errorAlert.textContent = `❌ Network error: ${error.message}`;
+                    errorAlert.classList.add('show');
+                }
+            });
+        });
+
+        function generateMockWalletId() {
+            // Generate a mock wallet ID for POC (in production, this would be from actual wallet)
+            const bytes = new Uint8Array(20);
+            crypto.getRandomValues(bytes);
+            return '0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function updateStats() {
+            // Increment publish count
+            const countEl = document.getElementById('publishCount');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+        }
+    </script>
+</body>
+</html>
+

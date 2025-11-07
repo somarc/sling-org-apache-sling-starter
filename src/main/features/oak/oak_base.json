@@ -86,10 +86,6 @@
             "start-order":"15"
         },
         {
-            "id":"org.apache.jackrabbit:oak-segment-consensus:${oak.version}",
-            "start-order":"15"
-        },
-        {
             "id":"org.apache.jackrabbit:oak-authorization-principalbased:${oak.version}",
             "start-order":"15"
         },

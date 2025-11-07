@@ -3,6 +3,10 @@
         {
             "id":"org.apache.jackrabbit:oak-segment-tar:${oak.version}",
             "start-order":"15"
+        },
+        {
+            "id":"org.apache.jackrabbit:oak-segment-consensus:${oak.version}",
+            "start-order":"16"
         }
     ],
     "configurations":{

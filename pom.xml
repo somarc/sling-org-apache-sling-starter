@@ -178,6 +178,14 @@
                             <title>Sling With Oak Segment NS Persistence</title>
                         </aggregate>
                         <aggregate>
+                            <classifier>oak_blockchain</classifier>
+                            <filesInclude>*.json</filesInclude>
+                            <filesInclude>oak/*.json</filesInclude>
+                            <filesInclude>oak/persistence/oak_persistence_blockchain.json</filesInclude>
+                            <filesInclude>app/*.json</filesInclude>
+                            <title>Sling With Blockchain AEM Composite NodeStore</title>
+                        </aggregate>
+                        <aggregate>
                             <classifier>oak_mongo</classifier>
                             <filesInclude>*.json</filesInclude>
                             <filesInclude>oak/*.json</filesInclude>
@@ -206,6 +214,7 @@
                             <includeClassifier>oak_tar</includeClassifier>
                             <includeClassifier>oak_tar_test</includeClassifier>
                             <includeClassifier>oak_mongo</includeClassifier>
+                            <includeClassifier>oak_blockchain</includeClassifier>
                             <includeClassifier>nosample_base</includeClassifier>
                         </scan>
                     </scans>
@@ -218,11 +227,16 @@
                             <classifier>oak_mongo_far</classifier>
                             <includeClassifier>oak_mongo</includeClassifier>
                         </archive>
+                        <archive>
+                            <classifier>oak_blockchain_far</classifier>
+                            <includeClassifier>oak_blockchain</includeClassifier>
+                        </archive>
                     </archives>
                     <repositories>
                         <repository>
                             <includeClassifier>oak_tar</includeClassifier>
                             <includeClassifier>oak_mongo</includeClassifier>
+                            <includeClassifier>oak_blockchain</includeClassifier>
                             <includeClassifier>docker</includeClassifier>
                         </repository>
                     </repositories>

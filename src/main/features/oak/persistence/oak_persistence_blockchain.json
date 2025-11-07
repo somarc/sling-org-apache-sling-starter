@@ -1,0 +1,36 @@
+{
+    "bundles":[
+        {
+            "id":"org.apache.jackrabbit:oak-segment-tar:${oak.version}",
+            "start-order":"15"
+        },
+        {
+            "id":"org.apache.jackrabbit:oak-segment-consensus:${oak.version}",
+            "start-order":"16"
+        },
+        {
+            "id":"org.apache.jackrabbit:oak-store-composite:${oak.version}",
+            "start-order":"15"
+        }
+    ],
+    "configurations":{
+        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService~default":{
+            "name":"Default NodeStore",
+            "role":"composite-global",
+            "repository.home":"./repository",
+            "customBlobStore":false
+        },
+        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService~global-chain":{
+            "name":"Global Blockchain Store",
+            "role":"composite-mount-oak-chain-global",
+            "repository.home":"/mnt/oak-chain",
+            "customBlobStore":false,
+            "standby":true
+        },
+        "org.apache.jackrabbit.oak.composite.CompositeNodeStoreService":{
+            "enableChecks":true,
+            "pathStats":false
+        }
+    }
+}
+
