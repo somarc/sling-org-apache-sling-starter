@@ -19,6 +19,10 @@
         {
             "id":"org.apache.jackrabbit:oak-store-composite:${oak.version}",
             "start-order":"15"
+        },
+        {
+            "id":"com.adobe.aem.blockchain:blockchain-aem-content:1.0.0-SNAPSHOT",
+            "start-order":"20"
         }
     ],
     "configurations":{
@@ -28,12 +32,15 @@
             "repository.home":"launcher/repository",
             "customBlobStore":false
         },
+        "org.apache.jackrabbit.oak.segment.http.HttpPersistenceService":{
+            "globalStoreUrl":"http://oak-global-store:8090"
+        },
         "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~oak-chain":{
-            "name":"Global Blockchain Store",
+            "name":"Global Blockchain Store (HTTP)",
             "role":"composite-mount-oak-chain",
-            "repository.home":"/mnt/oak-chain",
+            "repository.home":"launcher/http-segment-cache",
             "customBlobStore":false,
-            "tarmk.mode":"64"
+            "customSegmentStore":true
         },
         "org.apache.jackrabbit.oak.composite.MountInfoProviderService":{
             "mountedPaths":["/oak-chain"],
@@ -62,6 +69,14 @@
                 "org.apache.jackrabbit.oak.segment"
             ],
             "org.apache.sling.commons.log.file":"logs/oak-segment.log",
+            "org.apache.sling.commons.log.additiv":true
+        },
+        "org.apache.sling.commons.log.LogManager.factory.config~oak-http":{
+            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.names":[
+                "org.apache.jackrabbit.oak.segment.http"
+            ],
+            "org.apache.sling.commons.log.file":"logs/oak-http.log",
             "org.apache.sling.commons.log.additiv":true
         }
     }

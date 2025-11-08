@@ -3,6 +3,10 @@
         {
             "id":"org.apache.sling:org.apache.sling.starter.content:2.0.2",
             "start-order":"20"
+        },
+        {
+            "id":"com.adobe.aem.blockchain:blockchain-aem-content:1.0.0-SNAPSHOT",
+            "start-order":"20"
         }
     ],
     "configurations": {

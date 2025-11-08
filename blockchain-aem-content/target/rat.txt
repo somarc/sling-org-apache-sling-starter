@@ -1,0 +1,30 @@
+
+*****************************************************
+Summary
+-------
+Generated at: 2025-11-07T19:31:38-05:00
+
+Notes: 0
+Binaries: 0
+Archives: 0
+Standards: 4
+
+Apache Licensed: 4
+Generated Documents: 0
+
+JavaDocs are generated, thus a license header is optional.
+Generated files do not require license headers.
+
+0 Unknown Licenses
+
+*****************************************************
+  Files with Apache License headers will be marked AL
+  Binary files (which do not require any license headers) will be marked B
+  Compressed archives will be marked A
+  Notices, licenses etc. will be marked N
+  AL    pom.xml
+  AL    src/main/resources/SLING-INF/content/content/blockchain-aem/blockchain.html
+  AL    src/main/resources/SLING-INF/content/apps/blockchain-aem/components/blockchain-viewer/blockchain-viewer.html
+  AL    src/main/java/com/adobe/aem/blockchain/servlets/BlockchainBrowseServlet.java
+ 
+*****************************************************

@@ -135,6 +135,8 @@
                             <!-- Exclude sling instance -->
                             <exclude>sling/**</exclude>
                             <exclude>launcher/**</exclude>
+                            <!-- Exclude blockchain-aem-content build artifacts -->
+                            <exclude>blockchain-aem-content/target/**</exclude>
                         </excludes>
                     </configuration>
                 </plugin>
