@@ -54,6 +54,13 @@
             "enableChecks":false,
             "partialReadOnly":true
         },
+        "org.apache.jackrabbit.oak.segment.http.HttpSegmentStoreSync":{
+            "globalStoreUrl":"http://oak-global-store:8090",
+            "syncInterval":30,
+            "enabled":true,
+            "scheduler.period":30,
+            "scheduler.concurrent":false
+        },
         "org.apache.sling.commons.log.LogManager.factory.config~oak-composite":{
             "org.apache.sling.commons.log.level":"DEBUG",
             "org.apache.sling.commons.log.names":[
