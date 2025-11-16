@@ -1,34 +1,30 @@
 Manifest-Version: 1.0
+Bnd-LastModified: 1763147395612
+Build-Jdk-Spec: 24
 Bundle-Category: blockchain-aem
-Bundle-Description: Initial content and components for Blockchain AEM 
- POC
-Bundle-Developers: sling;name="Apache Sling Project"
-Bundle-DocURL: https://sling.apache.org
-Bundle-License: "Apache-2.0";link="https://www.apache.org/licenses/LIC
- ENSE-2.0.txt"
+Bundle-Description: Initial content and components for Blockchain AEM PO
+ C
 Bundle-ManifestVersion: 2
 Bundle-Name: Blockchain AEM - Content Package
-Bundle-SCM: url="https://gitbox.apache.org/repos/asf?p=sling-parent.gi
- t/blockchain-aem-content",connection="scm:git:https://gitbox.apache.o
- rg/repos/asf/sling-parent.git/blockchain-aem-content",developer-conne
- ction="scm:git:https://gitbox.apache.org/repos/asf/sling-parent.git/b
- lockchain-aem-content",tag=sling-parent-reactor-52
-Bundle-SymbolicName: blockchain-aem-content
-Bundle-Vendor: The Apache Software Foundation
+Bundle-SymbolicName: com.adobe.aem.blockchain.aem-content
 Bundle-Version: 1.0.0.SNAPSHOT
-Export-Package: com.adobe.aem.blockchain.servlets;uses:="org.apache.sl
- ing.api,org.apache.sling.api.servlets";version="1.0.0"
-Import-Package: com.adobe.aem.blockchain.servlets,java.io,java.lang,ja
- vax.servlet;version="[3.1,4)",org.apache.sling.api;version="[2.3,3)",
- org.apache.sling.api.servlets;version="[2.4,3)"
-Private-Package: SLING-INF.content.apps.blockchain-aem.components.bloc
- kchain-viewer,SLING-INF.content.content.blockchain-aem
-Provide-Capability: osgi.service;objectClass:List<String>="javax.servl
- et.Servlet";uses:="javax.servlet"
-Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
- nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
- e=JavaSE)(version=11))"
-Service-Component: OSGI-INF/com.adobe.aem.blockchain.servlets.Blockcha
- inBrowseServlet.xml
+Created-By: Apache Maven Bundle Plugin 5.1.9
+Export-Package: com.adobe.aem.blockchain.servlets;uses:="javax.servlet,o
+ rg.apache.sling.api,org.apache.sling.api.servlets,org.osgi.framework";v
+ ersion="1.0.0"
+Import-Package: com.adobe.aem.blockchain.servlets,java.io,java.lang,java
+ .lang.invoke,java.lang.reflect,javax.servlet;version="[3.1,4)",javax.se
+ rvlet.http;version="[3.1,4)",org.apache.sling.api;version="[2.3,3)",org
+ .apache.sling.api.resource;version="[2.13,3)",org.apache.sling.api.serv
+ lets;version="[2.4,3)",org.osgi.framework;version="[1.10,2)",org.slf4j;
+ version="[2.0,3)"
+Provide-Capability: osgi.service;objectClass:List<String>="javax.servlet
+ .Servlet";uses:="javax.servlet"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compone
+ nt)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.ee=Ja
+ vaSE)(version=11))"
+Service-Component: OSGI-INF/com.adobe.aem.blockchain.servlets.Blockchain
+ BrowseServlet.xml,OSGI-INF/com.adobe.aem.blockchain.servlets.ChatServle
+ t.xml,OSGI-INF/com.adobe.aem.blockchain.servlets.ChatUIServlet.xml
 Sling-Initial-Content: SLING-INF/content
-
+Tool: Bnd-6.3.1.202206071316

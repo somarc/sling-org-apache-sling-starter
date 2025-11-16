@@ -17,11 +17,35 @@
             "start-order":"16"
         },
         {
+            "id":"org.apache.jackrabbit:oak-segment-agentic:${oak.version}",
+            "start-order":"17"
+        },
+        {
             "id":"org.apache.jackrabbit:oak-store-composite:${oak.version}",
             "start-order":"15"
         },
         {
             "id":"com.adobe.aem.blockchain:blockchain-aem-content:1.0.0-SNAPSHOT",
+            "start-order":"20"
+        },
+        {
+            "id":"com.composum.nodes:composum-nodes-commons:${composum.nodes.version}",
+            "start-order":"20"
+        },
+        {
+            "id":"com.composum.nodes:composum-nodes-console:${composum.nodes.version}",
+            "start-order":"20"
+        },
+        {
+            "id":"com.composum.nodes:composum-nodes-jslibs:${composum.nodes.version}",
+            "start-order":"20"
+        },
+        {
+            "id":"com.composum.nodes:composum-nodes-pckgmgr:${composum.nodes.version}",
+            "start-order":"20"
+        },
+        {
+            "id":"com.composum.nodes:composum-nodes-usermgr:${composum.nodes.version}",
             "start-order":"20"
         }
     ],
@@ -33,7 +57,7 @@
             "customBlobStore":false
         },
         "org.apache.jackrabbit.oak.segment.http.HttpPersistenceService":{
-            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://oak-global-store:8090]"
+            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8091]"
         },
         "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~oak-chain":{
             "name":"Global Blockchain Store (HTTP)",
@@ -55,7 +79,7 @@
             "partialReadOnly":true
         },
        "org.apache.jackrabbit.oak.segment.sync.HttpSegmentStoreSync":{
-           "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://oak-global-store:8090]",
+           "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8091]",
            "syncInterval":60,
            "enabled":true,
            "onlyFinalized":false,
@@ -85,6 +109,14 @@
                 "org.apache.jackrabbit.oak.segment.http"
             ],
             "org.apache.sling.commons.log.file":"logs/oak-http.log",
+            "org.apache.sling.commons.log.additiv":true
+        },
+        "org.apache.sling.commons.log.LogManager.factory.config~oak-agentic":{
+            "org.apache.sling.commons.log.level":"INFO",
+            "org.apache.sling.commons.log.names":[
+                "org.apache.jackrabbit.oak.segment.agentic"
+            ],
+            "org.apache.sling.commons.log.file":"logs/oak-agentic.log",
             "org.apache.sling.commons.log.additiv":true
         }
     }

@@ -29,6 +29,15 @@ See [Releasing a new version of the Sling starter](https://cwiki.apache.org/conf
    > You can defer stopping the instance after running the ITs with argument `-Dfeature-launcher.waitForInput=true` to do some manual checks.
 
 2. Start Sling backed by 
+   - **Oak Blockchain (Composite NodeStore)** with helper script:
+     ```bash
+     ./scripts/run-sling-local.sh 4502 http://localhost:8091
+     ```
+     This runs Sling on port 4502 (AEM author port) and connects to validators.
+     - Port defaults to 4502 if not specified
+     - Global store URL defaults to http://localhost:8091 if not specified
+     - Requires validators to be running (see `blockchain-aem-infra/scripts/local-development/run-validators-local.sh`)
+   
    - Oak SegmentStore with
      ```bash
      target/dependency/org.apache.sling.feature.launcher/bin/launcher -f target/slingfeature-tmp/feature-oak_tar.json
@@ -37,6 +46,15 @@ See [Releasing a new version of the Sling starter](https://cwiki.apache.org/conf
      ```bat
      target\dependency\org.apache.sling.feature.launcher\bin\launcher.bat -f target\slingfeature-tmp\feature-oak_tar.json
      ```
+   
+   - Oak Blockchain manually (without helper script):
+     ```bash
+     export OAK_GLOBAL_STORE_URL=http://localhost:8091
+     target/dependency/org.apache.sling.feature.launcher/bin/launcher \
+       -f target/slingfeature-tmp/feature-oak_blockchain.json \
+       -Dorg.osgi.service.http.port=4502
+     ```
+   
    - Oak MongoDB DocumentStore with
      ```bash
      target/dependency/org.apache.sling.feature.launcher/bin/launcher -f target/slingfeature-tmp/feature-oak_mongo.json
@@ -47,7 +65,9 @@ See [Releasing a new version of the Sling starter](https://cwiki.apache.org/conf
      ```
      This expects a MongoDB server to be running, search for `mongodb://` in the feature files for the expected URL (currently `mongodb://localhost:27017`).
 
-3. Browse Sling in [localhost:8080](http://localhost:8080)
+3. Browse Sling:
+   - Blockchain AEM: [localhost:4502](http://localhost:4502) (default with helper script)
+   - Standard: [localhost:8080](http://localhost:8080) (default port)
 
 ## How to run the Sling Starter Docker image
 

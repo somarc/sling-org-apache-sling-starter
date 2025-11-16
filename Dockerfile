@@ -44,4 +44,7 @@ USER sling:sling
 
 WORKDIR /opt/sling
 ENTRYPOINT [ "/opt/sling/bin/launch.sh" ]
-CMD ["oak_tar"]
+# CRITICAL: Use oak_blockchain (not oak_tar) for Blockchain AEM setup
+# oak_tar uses SegmentNodeStoreService (old format)
+# oak_blockchain uses SegmentNodeStoreFactory (new format) + composite mount
+CMD ["oak_blockchain"]

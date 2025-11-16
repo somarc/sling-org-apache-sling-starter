@@ -1,0 +1,843 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Chat - Oak Troubleshooting Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .mode-toggle-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .mode-toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .mode-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mode-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 30px;
+        }
+
+        .mode-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .mode-toggle input:checked + .mode-toggle-slider {
+            background-color: #667eea;
+        }
+
+        .mode-toggle input:checked + .mode-toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        .mode-indicator {
+            font-size: 0.85rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .mode-indicator.agent-mode {
+            color: #764ba2;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .status-connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: 75%;
+        }
+
+        .message.user .message-content {
+            text-align: right;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-bubble {
+            background: #f7fafc;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            background: #f7fafc;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .chat-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 100px;
+            height: 50px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-dots {
+            display: inline-block;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #718096;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .welcome-message h2 {
+            color: #2d3748;
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+        }
+
+        .welcome-message p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .example-queries {
+            margin-top: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .example-query {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-query:hover {
+            background: #edf2f7;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 4px solid #f56565;
+            margin-bottom: 16px;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message.assistant .message-bubble pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .message.assistant .message-bubble pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                🤖 Agentic Chat
+                <span class="status-badge" id="statusBadge">Checking...</span>
+            </h1>
+            <p class="tagline">AI-powered troubleshooting assistant for Oak and Sling</p>
+            <div class="mode-toggle-container">
+                <span class="mode-toggle-label">Chat Mode:</span>
+                <label class="mode-toggle">
+                    <input type="checkbox" id="agentModeToggle" onchange="toggleAgentMode()">
+                    <span class="mode-toggle-slider"></span>
+                </label>
+                <span class="mode-indicator" id="modeIndicator">User ↔ LLM</span>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message" id="welcomeMessage">
+                    <h2>👋 Welcome to Agentic Chat</h2>
+                    <p id="welcomeDescription">Ask me anything about Oak internals, Sling state, validator connectivity, or log analysis.</p>
+                    <p>I have access to RAG-indexed code and can read logs to help troubleshoot issues.</p>
+                    <p id="agentModeHint" style="display: none; color: #764ba2; font-weight: 600; margin-top: 12px;">
+                        🤖 Agent-to-Agent Mode: Your agent will communicate with validator agents for collaborative troubleshooting.
+                    </p>
+                    <div class="example-queries">
+                        <span class="example-query" onclick="sendExampleQuery(this)">What errors are in the logs?</span>
+                        <span class="example-query" onclick="sendExampleQuery(this)">How does composite mount work?</span>
+                        <span class="example-query" onclick="sendExampleQuery(this)">Explain HttpSegmentStoreSync</span>
+                        <span class="example-query" onclick="sendExampleQuery(this)">What is the validator state?</span>
+                        <span class="example-query" onclick="sendExampleQuery(this)" id="agentExample" style="display: none;">Discover available agents</span>
+                        <span class="example-query" onclick="sendExampleQuery(this)" id="agentExample2" style="display: none;">Negotiate with validator agent</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <form class="chat-input-form" id="chatForm" onsubmit="sendMessage(event)">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Ask a question about Oak, Sling, or troubleshooting..."
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="send-button" id="sendButton">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusBadge = document.getElementById('statusBadge');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const agentModeToggle = document.getElementById('agentModeToggle');
+        const modeIndicator = document.getElementById('modeIndicator');
+
+        // Conversation history for agent-to-agent mode
+        let conversationHistory = [];
+        let isAgentMode = false;
+
+        // Check service availability on load
+        checkServiceStatus();
+
+        function checkServiceStatus() {
+            fetch('/v1/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: 'ping' })
+            })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    // Admin access required
+                    statusBadge.textContent = 'Admin Required';
+                    statusBadge.className = 'status-badge status-disconnected';
+                    return;
+                }
+                if (response.ok || response.status === 200) {
+                    return response.json().then(data => {
+                        statusBadge.textContent = 'Connected';
+                        statusBadge.className = 'status-badge status-connected';
+                    }).catch(() => {
+                        statusBadge.textContent = 'Connected';
+                        statusBadge.className = 'status-badge status-connected';
+                    });
+                } else {
+                    statusBadge.textContent = 'Disconnected';
+                    statusBadge.className = 'status-badge status-disconnected';
+                }
+            })
+            .catch(() => {
+                statusBadge.textContent = 'Disconnected';
+                statusBadge.className = 'status-badge status-disconnected';
+            });
+        }
+
+        function sendExampleQuery(element) {
+            const query = element.textContent.trim();
+            messageInput.value = query;
+            sendMessage(new Event('submit'));
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage(event);
+            }
+        }
+
+        function toggleAgentMode() {
+            isAgentMode = agentModeToggle.checked;
+            const welcomeDescription = document.getElementById('welcomeDescription');
+            const agentModeHint = document.getElementById('agentModeHint');
+            const agentExample = document.getElementById('agentExample');
+            const agentExample2 = document.getElementById('agentExample2');
+            
+            if (isAgentMode) {
+                modeIndicator.textContent = 'Agent ↔ Agent';
+                modeIndicator.classList.add('agent-mode');
+                welcomeDescription.textContent = 'Enable agent-to-agent mode to have your Sling author agent communicate with validator agents for collaborative troubleshooting.';
+                agentModeHint.style.display = 'block';
+                if (agentExample) agentExample.style.display = 'inline-block';
+                if (agentExample2) agentExample2.style.display = 'inline-block';
+                // Clear conversation history when switching modes
+                conversationHistory = [];
+            } else {
+                modeIndicator.textContent = 'User ↔ LLM';
+                modeIndicator.classList.remove('agent-mode');
+                welcomeDescription.textContent = 'Ask me anything about Oak internals, Sling state, validator connectivity, or log analysis.';
+                agentModeHint.style.display = 'none';
+                if (agentExample) agentExample.style.display = 'none';
+                if (agentExample2) agentExample2.style.display = 'none';
+                conversationHistory = [];
+            }
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || sendButton.disabled) {
+                return;
+            }
+
+            // Hide welcome message immediately when user sends a message
+            if (welcomeMessage && welcomeMessage.style.display !== 'none') {
+                welcomeMessage.style.display = 'none';
+            }
+
+            // Store message for conversation history
+            const userMessage = message;
+            
+            // Add user message
+            addMessage('user', userMessage);
+            messageInput.value = '';
+            adjustTextareaHeight();
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Disable input
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+
+            // Build request body based on mode
+            const requestBody = {
+                query: userMessage
+            };
+
+            if (isAgentMode) {
+                // Agent-to-agent mode: include conversation history and agent context
+                requestBody.context = {
+                    agentToAgent: true,
+                    conversationHistory: conversationHistory
+                };
+            }
+
+            // Send to API
+            fetch('/v1/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                if (response.status === 401 || response.status === 403) {
+                    // Authentication/Authorization required - redirect to login
+                    window.location.href = '/system/sling/login?resource=' + encodeURIComponent(window.location.pathname);
+                    throw new Error('Admin access required');
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received response:', data);
+                hideTypingIndicator();
+                
+                // API returns {answer, sources, confidence}
+                let responseText = data.answer || data.response || data.message;
+                
+                console.log('Response text:', responseText);
+                
+                // Update conversation history for agent-to-agent mode
+                if (isAgentMode) {
+                    conversationHistory.push({
+                        role: 'user',
+                        content: userMessage
+                    });
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: responseText
+                    });
+                }
+                
+                // If agent-to-agent mode, show agent metadata if available
+                if (isAgentMode && data.agentMetadata) {
+                    responseText += '\n\n--- Agent Info ---\n';
+                    if (data.agentMetadata.respondingAgentId) {
+                        responseText += `Responding Agent: ${data.agentMetadata.respondingAgentId}\n`;
+                    }
+                    if (data.agentMetadata.respondingAgentType) {
+                        responseText += `Agent Type: ${data.agentMetadata.respondingAgentType}\n`;
+                    }
+                }
+                
+                // If we have sources, append them
+                if (data.sources && data.sources.length > 0) {
+                    responseText += '\n\n📚 Sources:';
+                    data.sources.forEach((source, idx) => {
+                        responseText += `\n${idx + 1}. ${source.endpoint || source.type || 'Unknown'}`;
+                        if (source.data) {
+                            responseText += ` - ${source.data}`;
+                        }
+                    });
+                }
+                
+                // Fallback to JSON if no answer found
+                if (!responseText) {
+                    console.warn('No answer found in response, using JSON fallback');
+                    responseText = JSON.stringify(data, null, 2);
+                }
+                
+                console.log('Adding message with text length:', responseText.length);
+                addMessage('assistant', responseText);
+            })
+            .catch(error => {
+                hideTypingIndicator();
+                addMessage('assistant', `❌ Error: ${error.message}\n\nPlease ensure the oak-segment-agentic bundle is installed and Ollama is running.`, true);
+            })
+            .finally(() => {
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            });
+        }
+
+        function addMessage(role, content, isError = false) {
+            console.log('addMessage called:', { role, contentLength: content.length, isError });
+            
+            // Ensure welcome message is hidden
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            try {
+                if (isError) {
+                    bubble.innerHTML = `<div class="error-message">${escapeHtml(content)}</div>`;
+                } else {
+                    // Format code blocks and preserve formatting
+                    bubble.innerHTML = formatMessage(content);
+                }
+            } catch (e) {
+                console.error('Error formatting message:', e);
+                bubble.textContent = content; // Fallback to plain text
+            }
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString();
+
+            contentDiv.appendChild(bubble);
+            contentDiv.appendChild(time);
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+
+            chatMessages.appendChild(messageDiv);
+            console.log('Message added to DOM, element:', messageDiv);
+            console.log('Chat messages container has', chatMessages.children.length, 'children');
+            
+            // Force a reflow to ensure rendering
+            messageDiv.offsetHeight;
+            
+            // Scroll to bottom
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 10);
+        }
+
+        function formatMessage(text) {
+            // Escape HTML first
+            let formatted = escapeHtml(text);
+            
+            // Convert code blocks (```language\ncode\n```)
+            formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre><code>${code.trim()}</code></pre>`;
+            });
+            
+            // Convert inline code (`code`)
+            formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // Convert line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator active';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '🤖';
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(typingDiv);
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                const messageDiv = indicator.closest('.message');
+                if (messageDiv) {
+                    messageDiv.remove();
+                } else {
+                    // Fallback to old method
+                    indicator.parentElement.parentElement.remove();
+                }
+            }
+        }
+
+        function adjustTextareaHeight() {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 150) + 'px';
+        }
+
+        // Auto-adjust textarea height
+        messageInput.addEventListener('input', adjustTextareaHeight);
+    </script>
+</body>
+</html>
+
