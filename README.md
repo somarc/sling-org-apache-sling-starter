@@ -2,7 +2,39 @@
 
 &#32;[![Build Status](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-starter/job/master/badge/icon)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-starter/job/master/)&#32;[![Test Status](https://img.shields.io/jenkins/tests.svg?jobUrl=https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-starter/job/master/)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-starter/job/master/test/?width=800&height=600)&#32;[![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=apache_sling-org-apache-sling-starter&metric=alert_status)](https://sonarcloud.io/dashboard?id=apache_sling-org-apache-sling-starter)&#32;[![JavaDoc](https://www.javadoc.io/badge/org.apache.sling/org.apache.sling.starter.svg)](https://www.javadoc.io/doc/org.apache.sling/org.apache.sling.starter)&#32;[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.sling/org.apache.sling.starter/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.sling%22%20a%3A%22org.apache.sling.starter%22) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-# Apache Sling Starter
+# Apache Sling Starter (Blockchain AEM Fork)
+
+> **🔗 This is a fork of Apache Sling Starter for the Blockchain AEM project**
+
+This fork extends the [Apache Sling Starter](https://github.com/apache/sling-org-apache-sling-starter) to support **Blockchain AEM**, a distributed content repository that bridges Ethereum smart contracts with Apache Jackrabbit Oak's immutable segment store.
+
+## 🎯 Purpose
+
+**This Sling Starter fork simulates AEM clients** (authors and publishers) that connect to the global oak-chain validator network. It provides a test environment for:
+
+- **Multi-peer AEM instances**: Multiple Sling authors connecting to different validators
+- **Read-only global content**: Mounting the global oak-chain as a read-only composite NodeStore
+- **Wallet-based writes**: Testing write operations that require Ethereum wallet signatures
+- **Validator network interaction**: Demonstrating how AEM clients register and communicate with validators
+
+This fork adds:
+
+- **Oak Blockchain Feature**: Composite NodeStore configuration that mounts a read-only global oak-chain via HTTP segment transfer
+- **Wallet-Based Authentication**: Integration with Ethereum wallet signatures for write operations
+- **Agentic Chat Interface**: Embedded LLM assistant for natural language queries about Oak validators and system state
+- **Local Development Tools**: Helper scripts for Docker-free development and testing
+
+> **Note**: In production, AEM instances (authors and publishers) would connect to the validator network similarly to how this Sling Starter connects. This fork provides a lightweight way to test and demonstrate the client-side integration without requiring full AEM installations.
+
+## 🔗 Related Projects
+
+This Sling Starter fork is part of the broader **Blockchain AEM** ecosystem:
+
+- **`jackrabbit-oak`** (feature/blockchain-aem-poc branch): Core Oak modules including `oak-segment-consensus`, `oak-segment-http`, and `oak-segment-agentic`
+- **`blockchain-aem-infra`**: Infrastructure scripts, Docker Compose configurations, and deployment automation
+- **`Blockchain-AEM`**: Documentation, architecture designs, and project management
+
+## 📚 Original Apache Sling Starter
 
 This module is part of the [Apache Sling](https://sling.apache.org) project.
 
@@ -37,6 +69,10 @@ See [Releasing a new version of the Sling starter](https://cwiki.apache.org/conf
      - Port defaults to 4502 if not specified
      - Global store URL defaults to http://localhost:8091 if not specified
      - Requires validators to be running (see `blockchain-aem-infra/scripts/local-development/run-validators-local.sh`)
+     
+     > **Blockchain AEM**: This configuration simulates an AEM client connecting to the global oak-chain validator network.
+     > It mounts a read-only global oak-chain via HTTP segment transfer. Writes require Ethereum wallet signatures 
+     > and are routed through the validator network's Aeron Cluster consensus.
    
    - Oak SegmentStore with
      ```bash
@@ -157,3 +193,29 @@ Your own feature files can be added to the feature list.
 ## Helper scripts
 
 The `scripts` directory contains helper scripts that will aid with local development by simplifying the use of tools external to the Sling Starter.
+
+### Blockchain AEM Specific Scripts
+
+- **`scripts/run-sling-local.sh`**: Launches Sling with Oak Blockchain feature, connecting to validator network
+- **`blockchain-aem-content/`**: Custom content modules including agentic chat interface servlets
+
+## 🚀 Getting Started with Blockchain AEM
+
+For a complete setup guide, see the [Blockchain AEM README](https://github.com/somarc/Blockchain-AEM/blob/master/README.md) and [Quick Start Guide](https://github.com/somarc/Blockchain-AEM/blob/master/QUICKSTART.md).
+
+**Quick Start** (Simulating AEM Client Connection):
+1. Start validators: `cd ../blockchain-aem-infra/scripts/local-development && ./run-validators-local.sh start`
+2. Build Oak modules: `cd ../../../jackrabbit-oak && mvn clean install -pl oak-segment-consensus,oak-segment-http,oak-segment-agentic -am -DskipTests`
+3. Build Sling Starter: `cd ../sling-org-apache-sling-starter && mvn clean package -DskipTests`
+4. Start Sling (simulating AEM author): `./scripts/run-sling-local.sh 4502 http://localhost:8091`
+5. Access: http://localhost:4502 (Sling/AEM client) and http://localhost:8091 (Validator Dashboard)
+
+> **Multiple Clients**: You can start multiple Sling instances on different ports to simulate multiple AEM authors/publishers 
+> connecting to the validator network. Each instance will mount the global oak-chain as read-only and can perform 
+> wallet-authenticated writes through the validator network.
+
+## 📖 Additional Resources
+
+- **Architecture**: See [Blockchain AEM Architecture Documentation](https://github.com/somarc/Blockchain-AEM/tree/master/02-architecture)
+- **Development**: See [Development Guides](https://github.com/somarc/Blockchain-AEM/tree/master/03-development)
+- **Project Status**: See [Status Summary](https://github.com/somarc/Blockchain-AEM/blob/master/STATUS-SUMMARY.md)
