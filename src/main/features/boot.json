@@ -13,7 +13,7 @@
             "start-order":"1"
         },
         {
-            "id":"org.apache.commons:commons-lang3:3.19.0",
+            "id":"org.apache.commons:commons-lang3:3.20.0",
             "start-order":"1"
         },
         {
@@ -65,7 +65,7 @@
             "start-order":"1"
         },
         {
-            "id":"org.apache.sling:org.apache.sling.commons.log:jar:all:6.0.0",
+            "id":"org.apache.sling:org.apache.sling.commons.log:jar:all:6.0.2",
             "start-order":"1"
         },
         {
@@ -105,7 +105,7 @@
             "start-order":"1"
         },
         {
-            "id":"org.apache.sling:org.apache.sling.settings:1.4.2",
+            "id":"org.apache.sling:org.apache.sling.settings:1.5.0",
             "start-order":"1"
         },
         {
