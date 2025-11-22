@@ -57,7 +57,7 @@
             "customBlobStore":false
         },
         "org.apache.jackrabbit.oak.segment.http.HttpPersistenceService":{
-            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8091]"
+            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8090]"
         },
         "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~oak-chain":{
             "name":"Global Blockchain Store (HTTP)",
@@ -79,7 +79,7 @@
             "partialReadOnly":true
         },
        "org.apache.jackrabbit.oak.segment.sync.HttpSegmentStoreSync":{
-           "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8091]",
+           "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8090]",
            "syncInterval":60,
            "enabled":true,
            "onlyFinalized":false,

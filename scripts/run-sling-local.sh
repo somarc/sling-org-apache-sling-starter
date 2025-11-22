@@ -15,7 +15,7 @@ cd "$PROJECT_ROOT"
 
 # Configuration
 SLING_PORT="${1:-4502}"
-GLOBAL_STORE_URL="${2:-http://localhost:8091}"
+GLOBAL_STORE_URL="${2:-http://localhost:8090}"
 WORK_DIR="${SLING_WORK_DIR:-$PROJECT_ROOT/launcher}"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

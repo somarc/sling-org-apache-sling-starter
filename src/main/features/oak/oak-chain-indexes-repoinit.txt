@@ -1,0 +1,93 @@
+# Oak-Chain Lucene Indexes
+# Purpose: Enable fast queries over blockchain content in Sling
+
+# Create oak:index folder if needed
+create path (oak:Unstructured) /oak:index
+
+# Wallet Content Index - Fast lookups by wallet address
+create path (oak:QueryIndexDefinition) /oak:index/oakChainWalletIndex
+set properties on /oak:index/oakChainWalletIndex
+  set type to "lucene"
+  set async to "async"
+  set compatVersion{Long} to 2
+  set reindex{Boolean} to false
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules/nt:unstructured
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties
+
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/wallet
+set properties on /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/wallet
+  set propertyIndex{Boolean} to true
+  set name to "wallet"
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/contentType
+set properties on /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/contentType
+  set propertyIndex{Boolean} to true
+  set name to "contentType"
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/timestamp
+set properties on /oak:index/oakChainWalletIndex/indexRules/nt:unstructured/properties/timestamp
+  set propertyIndex{Boolean} to true
+  set ordered{Boolean} to true
+  set name to "timestamp"
+end
+
+# Wallet Metadata Index - For statistics and leaderboards
+create path (oak:QueryIndexDefinition) /oak:index/oakChainWalletMetadataIndex
+set properties on /oak:index/oakChainWalletMetadataIndex
+  set type to "lucene"
+  set async to "async"
+  set compatVersion{Long} to 2
+  set reindex{Boolean} to false
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties
+
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/nodeType
+set properties on /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/nodeType
+  set propertyIndex{Boolean} to true
+  set name to "nodeType"
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/contentCount
+set properties on /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/contentCount
+  set propertyIndex{Boolean} to true
+  set ordered{Boolean} to true
+  set name to "contentCount"
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/totalWrites
+set properties on /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/totalWrites
+  set propertyIndex{Boolean} to true
+  set ordered{Boolean} to true
+  set name to "totalWrites"
+end
+
+create path (nt:unstructured) /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/lastWrite
+set properties on /oak:index/oakChainWalletMetadataIndex/indexRules/nt:unstructured/properties/lastWrite
+  set propertyIndex{Boolean} to true
+  set ordered{Boolean} to true
+  set name to "lastWrite"
+end
+
+# Path Index for /oak-chain
+create path (oak:QueryIndexDefinition) /oak:index/oakChainPathIndex
+set properties on /oak:index/oakChainPathIndex
+  set type to "lucene"
+  set async to "async"
+  set compatVersion{Long} to 2
+  set reindex{Boolean} to false
+end
+
+create path (nt:unstructured) /oak:index/oakChainPathIndex/aggregates
+create path (nt:unstructured) /oak:index/oakChainPathIndex/aggregates/nt:unstructured
+set properties on /oak:index/oakChainPathIndex/aggregates/nt:unstructured
+  set path to "/oak-chain"
+end
+
