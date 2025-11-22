@@ -1,6 +1,0 @@
-{
-  "jcr:primaryType": "nt:unstructured",
-  "jcr:title": "Blockchain AEM Viewer",
-  "sling:resourceType": "blockchain-aem/components/blockchain-viewer"
-}
-
