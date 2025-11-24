@@ -65,10 +65,9 @@ mkdir -p "$WORK_DIR"
 export OAK_GLOBAL_STORE_URL="$GLOBAL_STORE_URL"
 
 # Set Java options - use JAVA_TOOL_OPTIONS which Java reads automatically
-# This is safer than JAVA_OPTS which the launcher might not handle correctly
-if [ -z "$JAVA_TOOL_OPTIONS" ]; then
-    export JAVA_TOOL_OPTIONS="-Xmx2g -XX:MaxMetaspaceSize=512m"
-fi
+# Include sling.home system property so wallet service knows where to save keystore
+# Quote the path to handle spaces in directory names
+export JAVA_TOOL_OPTIONS="-Xmx2g -XX:MaxMetaspaceSize=512m -Dsling.home=\"$WORK_DIR\""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📋 Launching Sling..."
@@ -85,7 +84,7 @@ echo ""
 
 # Launch Sling
 # Note: Port is set via framework property (-D requires space: -D key=value)
-# Work directory defaults to ./launcher
+# sling.home is set via JAVA_TOOL_OPTIONS above
 exec target/dependency/org.apache.sling.feature.launcher/bin/launcher \
     -f "$FEATURE_FILE" \
     -D "org.osgi.service.http.port=$SLING_PORT"
