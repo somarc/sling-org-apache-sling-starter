@@ -25,6 +25,10 @@
             "start-order":"15"
         },
         {
+            "id":"org.apache.jackrabbit:oak-auth-web3:${oak.version}",
+            "start-order":"15"
+        },
+        {
             "id":"com.adobe.aem.blockchain:blockchain-aem-content:1.0.0-SNAPSHOT",
             "start-order":"20"
         },
@@ -87,7 +91,7 @@
            "scheduler.concurrent":false
        },
         "org.apache.sling.commons.log.LogManager.factory.config~oak-composite":{
-            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.level":"INFO",
             "org.apache.sling.commons.log.names":[
                 "org.apache.jackrabbit.oak.composite",
                 "org.apache.jackrabbit.oak.spi.mount"
@@ -96,7 +100,7 @@
             "org.apache.sling.commons.log.additiv":true
         },
         "org.apache.sling.commons.log.LogManager.factory.config~oak-segment":{
-            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.level":"INFO",
             "org.apache.sling.commons.log.names":[
                 "org.apache.jackrabbit.oak.segment"
             ],
@@ -104,7 +108,7 @@
             "org.apache.sling.commons.log.additiv":true
         },
         "org.apache.sling.commons.log.LogManager.factory.config~oak-http":{
-            "org.apache.sling.commons.log.level":"DEBUG",
+            "org.apache.sling.commons.log.level":"INFO",
             "org.apache.sling.commons.log.names":[
                 "org.apache.jackrabbit.oak.segment.http"
             ],
@@ -118,7 +122,35 @@
             ],
             "org.apache.sling.commons.log.file":"logs/oak-agentic.log",
             "org.apache.sling.commons.log.additiv":true
+        },
+        "com.adobe.aem.blockchain.config.BlockchainConfigService":{
+            "mode":"mock",
+            "validatorUrl":"http://localhost:8090",
+            "requiresMetaMask":false,
+            "contractAddress":"0x7fcEc350268F5482D04eb4B229A0679374906732"
+        },
+        "org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended~blockchain-aem":{
+            "user.mapping":[
+                "com.adobe.aem.blockchain.aem-content:blockchain-aem-registration=[blockchain-aem-registration]"
+            ]
+        },
+        "org.apache.sling.engine.impl.auth.SlingAuthenticator":{
+            "sling.auth.requirements":[
+                "-/starter.html",
+                "-/starter.login.html",
+                "-/bin/blockchain-aem/biometric-login",
+                "-/bin/blockchain-aem/metamask-login",
+                "-/bin/blockchain-aem/register-user",
+                "-/bin/blockchain-aem/biometric-register",
+                "-/bin/blockchain-aem/register-biometric",
+                "-/content/blockchain-aem/login.html",
+                "-/content/blockchain-aem/register.html",
+                "+/content/blockchain-aem",
+                "+/bin/blockchain",
+                "+/bin/browser.html"
+            ]
         }
-    }
+    },
+    "repoinit:TEXT|true": "@file"
 }
 

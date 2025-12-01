@@ -213,6 +213,38 @@
                 color: #22543d;
             }
 
+            .badge-mode {
+                display: inline-block;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                margin-left: 10px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+            }
+
+            .badge-mock {
+                background: #fbbf24;
+                color: #78350f;
+            }
+
+            .badge-sepolia {
+                background: #10b981;
+                color: #064e3b;
+            }
+
+            .badge-mainnet {
+                background: #ef4444;
+                color: #7f1d1d;
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+
             @media (max-width: 768px) {
                 h1 {
                     font-size: 2.5rem;
@@ -238,46 +270,46 @@
                 <h1>⛓️ Blockchain AEM</h1>
                 <p class="tagline">Decentralized Content Repository POC</p>
                 <p class="subtitle">Oak + Aeron Consensus + Ethereum Smart Contracts</p>
-                <span class="badge badge-poc">GARAGE WEEK 2025</span>
+                <div style="margin-top: 15px;">
+                    <span class="badge badge-poc">GARAGE WEEK 2025</span>
+                    <span id="mode-badge" class="badge-mode badge-mock">🎭 Loading...</span>
+                </div>
             </div>
 
             <div class="card-grid">
-                <!-- MetaMask Publishing -->
+                <!-- Content Editor (Author) -->
                 <div class="card">
                     <h2>
-                        <span class="card-icon">🦊</span>
-                        MetaMask Publishing
+                        <span class="card-icon">✍️</span>
+                        Content Editor
                         <span class="badge badge-new">NEW</span>
                     </h2>
                     <p>
-                        Pay validators with cryptocurrency (ETH/USDC) via MetaMask. 
-                        Choose Standard ($3.25), Express ($6.50), or Priority ($32.50) tiers 
-                        for instant decentralized content publishing.
+                        Create and publish content to the global oak-chain. Mode-aware interface
+                        automatically detects MOCK (no MetaMask), SEPOLIA (testnet), or MAINNET.
+                        Choose payment tiers for instant finality.
                     </p>
                     <div class="card-links">
-                        <a href="/content/blockchain-aem/oak-chain-publish.html" class="btn btn-secondary">
-                            💰 Pay & Publish to Oak Chain
-                        </a>
-                        <a href="/blockchain-aem-content/README-METAMASK-INTEGRATION.md" class="btn btn-tertiary">
-                            📖 Integration Docs
+                        <a href="/apps/garage-demo/components/editor/editor.html" class="btn btn-secondary">
+                            ✍️ Create Content (Author)
                         </a>
                     </div>
                 </div>
 
-                <!-- Blockchain Browser -->
+                <!-- Content Viewer (Publish) -->
                 <div class="card">
                     <h2>
-                        <span class="card-icon">🔍</span>
-                        Blockchain Browser
+                        <span class="card-icon">👁️</span>
+                        Content Viewer
                     </h2>
                     <p>
-                        Explore the global oak-chain content via HTTP Segment Transfer. 
-                        View genesis content, validator status, and decentralized content 
-                        replicated across multiple validators.
+                        View published content from the global oak-chain. Beautiful public-facing
+                        website design with blockchain verification badges. Perfect for demonstrating
+                        decentralized content delivery.
                     </p>
                     <div class="card-links">
-                        <a href="/content/blockchain-aem/blockchain.html" class="btn btn-primary">
-                            🌐 Browse Global Chain
+                        <a href="/apps/garage-demo/components/viewer/viewer.html" class="btn btn-primary">
+                            👁️ View Published Content
                         </a>
                         <a href="/bin/browser.html" class="btn btn-tertiary">
                             🗂️ Composum Browser
@@ -285,20 +317,23 @@
                     </div>
                 </div>
 
-                <!-- Agentic Chat -->
+                <!-- Validator Dashboard -->
                 <div class="card">
                     <h2>
-                        <span class="card-icon">🤖</span>
-                        Agentic Chat
+                        <span class="card-icon">🔧</span>
+                        Validator Dashboard
                     </h2>
                     <p>
-                        Chat with AI assistants that understand Oak validators, consensus 
-                        mechanics, and blockchain economics. Get real-time insights into 
-                        validator state and proposal queues.
+                        Monitor the global validator network. View consensus state, Aeron cluster 
+                        health, proposal queues, and earnings. Real-time metrics from the
+                        decentralized content repository.
                     </p>
                     <div class="card-links">
-                        <a href="/content/blockchain-aem/agentic-chat.html" class="btn btn-primary">
-                            💬 Chat with Oak Validators
+                        <a href="http://localhost:8090/" target="_blank" class="btn btn-primary">
+                            📊 Validator Dashboard
+                        </a>
+                        <a href="http://localhost:8090/api-browser" target="_blank" class="btn btn-tertiary">
+                            🧪 API Browser
                         </a>
                     </div>
                 </div>
@@ -344,6 +379,50 @@
                 </p>
             </div>
         </div>
+
+        <script>
+        // Fetch blockchain mode from validator API and update badge
+        (async function() {
+            const modeBadge = document.getElementById('mode-badge');
+            const validatorUrl = 'http://localhost:8090';
+            
+            try {
+                const response = await fetch(`${validatorUrl}/v1/blockchain/config`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const config = await response.json();
+                
+                // Update badge based on mode
+                modeBadge.textContent = config.displayName || config.mode.toUpperCase();
+                modeBadge.className = 'badge-mode';
+                
+                switch(config.mode) {
+                    case 'mock':
+                        modeBadge.classList.add('badge-mock');
+                        break;
+                    case 'sepolia':
+                        modeBadge.classList.add('badge-sepolia');
+                        break;
+                    case 'mainnet':
+                        modeBadge.classList.add('badge-mainnet');
+                        break;
+                    default:
+                        modeBadge.classList.add('badge-mock');
+                }
+                
+                console.log('🎭 Blockchain Mode:', config.mode);
+                console.log('📡 Full Config:', config);
+                
+            } catch (error) {
+                console.error('Failed to load blockchain config:', error);
+                modeBadge.textContent = '⚠️ Validator Offline';
+                modeBadge.style.background = '#fbbf24';
+                modeBadge.style.color = '#78350f';
+            }
+        })();
+        </script>
     </body>
 </html>
 
