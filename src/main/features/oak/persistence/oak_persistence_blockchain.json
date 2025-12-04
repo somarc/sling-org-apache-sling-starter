@@ -61,7 +61,10 @@
             "customBlobStore":false
         },
         "org.apache.jackrabbit.oak.segment.http.HttpPersistenceService":{
-            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8090]"
+            "globalStoreUrl":"$[env:OAK_GLOBAL_STORE_URL;default=http://localhost:8090]",
+            "lazyMount":true,
+            "healthCheckIntervalSeconds":5,
+            "connectionTimeoutMs":2000
         },
         "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory~oak-chain":{
             "name":"Global Blockchain Store (HTTP)",
