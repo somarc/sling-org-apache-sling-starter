@@ -20,3 +20,5 @@ atlassian-ide-plugin.xml
 /launcher/
 /org.apache.sling.feature.launcher-*.jar
 .vscode/
+sling.log
+sling-startup.log
