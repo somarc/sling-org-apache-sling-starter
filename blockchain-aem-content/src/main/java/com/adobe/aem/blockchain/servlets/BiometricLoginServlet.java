@@ -18,11 +18,15 @@
  */
 package com.adobe.aem.blockchain.servlets;
 
+import com.adobe.aem.blockchain.utils.PasswordDerivation;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.auth.core.AuthenticationSupport;
+import org.apache.sling.auth.core.spi.AuthenticationInfo;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -32,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.servlet.Servlet;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -62,6 +67,9 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
     
     @Reference
     private SlingRepository repository;
+    
+    @Reference
+    private AuthenticationSupport authSupport;
     
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) 
@@ -111,12 +119,49 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
                 LOG.info("✅ Biometric authentication successful for: {}", walletAddress);
                 LOG.info("📂 Session user ID: {}", session.getUserID());
                 
+                // ═══════════════════════════════════════════════════════════════════
+                // CRITICAL: Integrate with Sling authentication framework
+                // This creates an HTTP session and maintains authentication state
+                // ═══════════════════════════════════════════════════════════════════
+                LOG.info("🔗 Registering authentication with Sling HTTP session...");
+                
+                // Create AuthenticationInfo for Sling
+                AuthenticationInfo authInfo = new AuthenticationInfo("WEB3_BIOMETRIC", walletAddress);
+                authInfo.put(ResourceResolverFactory.USER, walletAddress);
+                authInfo.put(ResourceResolverFactory.PASSWORD, PasswordDerivation.derivePassword(walletAddress).toCharArray());
+                authInfo.put("user.jcr.session", session); // Pass the live JCR session
+                
+                // Integrate with Sling authentication framework to create HTTP session
+                authSupport.handleSecurity(request, response);
+                
+                // Set request attribute that Sling auth will recognize
+                request.setAttribute("user.jcr.session", session);
+                
+                LOG.info("   ✅ JCR session attached to HTTP request");
+                LOG.info("   ✅ Sling HTTP session created");
+                LOG.info("   ✅ Sling will maintain this session for subsequent requests");
+                
+                // ✅ Create and set the authentication cookie (matching MetaMask pattern)
+                Cookie authCookie = new Cookie("blockchain.aem.auth", walletAddress);
+                authCookie.setPath("/");
+                authCookie.setMaxAge(24 * 60 * 60); // 24 hours
+                authCookie.setHttpOnly(true);
+                authCookie.setSecure(request.isSecure());
+                response.addCookie(authCookie);
+                
+                LOG.info("   ✅ Web3 authentication cookie set for biometric login");
+                LOG.info("   - Cookie name: blockchain.aem.auth");
+                LOG.info("   - Value: {}", walletAddress);
+                LOG.info("   - Will be recognized by Web3AuthenticationHandler on subsequent requests");
+                
                 // Success response (Sling will handle session management)
                 JsonObject successResponse = new JsonObject();
                 successResponse.addProperty("success", true);
                 successResponse.addProperty("message", "Biometric authentication successful");
                 successResponse.addProperty("userId", session.getUserID());
                 successResponse.addProperty("walletAddress", walletAddress);
+                successResponse.addProperty("sessionCreated", true);
+                successResponse.addProperty("persistent", true);
                 
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.getWriter().write(GSON.toJson(successResponse));
@@ -133,8 +178,10 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
                 response.getWriter().write(GSON.toJson(errorResponse));
                 
             } finally {
+                // Don't logout the session - Sling needs it for the HTTP session!
+                // The JCR session is now owned by Sling's authentication framework
                 if (session != null && session.isLive()) {
-                    session.logout();
+                    LOG.debug("   JCR session kept alive for Sling HTTP session");
                 }
             }
             

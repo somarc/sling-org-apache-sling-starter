@@ -106,14 +106,21 @@ public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHand
             info.put(ResourceResolverFactory.USER, walletAddress);
             info.put(ResourceResolverFactory.PASSWORD, derivedPassword.toCharArray());
             
-            // Also provide JCR credentials directly for compatibility
-            info.put("user.jcr.credentials", new javax.jcr.SimpleCredentials(
+            // Create JCR credentials with Web3 attributes for Oak LoginModule
+            javax.jcr.SimpleCredentials jcrCreds = new javax.jcr.SimpleCredentials(
                 walletAddress,
                 derivedPassword.toCharArray()
-            ));
+            );
+            
+            // CRITICAL: Set attributes that Web3BiometricLoginModule expects
+            jcrCreds.setAttribute("web3.metamask.verified", Boolean.TRUE);
+            jcrCreds.setAttribute("web3.metamask.address", walletAddress);
+            
+            // Provide JCR credentials to Sling
+            info.put("user.jcr.credentials", jcrCreds);
             
             LOG.info("✅ Web3 authentication extracted for wallet: {}", walletAddress);
-            LOG.debug("   Provided USER={}, PASSWORD=(derived), and JCR credentials", walletAddress);
+            LOG.debug("   Provided USER={}, PASSWORD=(derived), JCR credentials with Web3 attributes", walletAddress);
             return info;
             
         } catch (Exception e) {

@@ -20,17 +20,26 @@ package com.adobe.aem.blockchain.servlets;
 
 import com.adobe.aem.blockchain.utils.PasswordDerivation;
 import com.adobe.aem.blockchain.utils.SignatureVerifier;
+import com.adobe.aem.blockchain.utils.PasswordDerivation;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.auth.core.AuthenticationSupport;
+import org.apache.sling.auth.core.spi.AuthenticationInfo;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.servlets.annotations.SlingServletPaths;
 import org.osgi.service.component.annotations.Component;
@@ -73,6 +82,9 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
     
     @Reference
     private SlingRepository repository;
+    
+    @Reference
+    private AuthenticationSupport authSupport;
 
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) 
@@ -132,6 +144,8 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 LOG.info("✅ Auto-created user for wallet: {}", address);
             } else {
                 LOG.info("✅ User already exists: {}", address);
+                // Ensure permissions are up to date on every login
+                ensureUserPermissions(address);
             }
             
             // ═══════════════════════════════════════════════════════════════════
@@ -176,6 +190,32 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 LOG.info("   - Value: {}", address);
                 LOG.info("   - Will be recognized by Web3AuthenticationHandler on subsequent requests");
                 
+                // ═══════════════════════════════════════════════════════════════════
+                // Step 3: Integrate with Sling authentication framework
+                // CRITICAL: Must do this BEFORE sending response!
+                // This creates an HTTP session and sets the authentication state
+                // ═══════════════════════════════════════════════════════════════════
+                LOG.info("🔗 Registering authentication with Sling HTTP session...");
+                
+                // Create AuthenticationInfo for Sling
+                AuthenticationInfo authInfo = new AuthenticationInfo("WEB3", address);
+                authInfo.put(ResourceResolverFactory.USER, address);
+                authInfo.put(ResourceResolverFactory.PASSWORD, PasswordDerivation.derivePassword(address).toCharArray());
+                authInfo.put("user.jcr.session", jcrSession); // Pass the live JCR session
+                
+                // Integrate with Sling authentication framework to create HTTP session
+                authSupport.handleSecurity(request, response);
+                
+                // Set request attribute that Sling auth will recognize
+                request.setAttribute("user.jcr.session", jcrSession);
+                
+                LOG.info("   ✅ JCR session attached to HTTP request");
+                LOG.info("   ✅ Sling HTTP session created");
+                LOG.info("   ✅ Sling will maintain this session for subsequent requests");
+                
+                // DON'T logout - Sling needs this session for the HTTP session!
+                // The JCR session is now owned by Sling's authentication framework
+                
                 JsonObject responseData = new JsonObject();
                 responseData.addProperty("success", true);
                 responseData.addProperty("address", address);
@@ -186,6 +226,7 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 responseData.addProperty("jcrSessionCreated", true);
                 responseData.addProperty("cookieSet", true);
                 responseData.addProperty("persistent", true);
+                responseData.addProperty("sessionAttached", true);
                 
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
@@ -194,8 +235,6 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 
                 LOG.info("✅ MetaMask authentication complete!");
                 LOG.info("   Full Sling integration: Web3AuthenticationHandler will handle subsequent requests");
-                
-                // Don't logout - keep session alive for the auth token
                 
             } catch (javax.jcr.LoginException e) {
                 LOG.error("❌ Oak JAAS authentication failed: {}", e.getMessage(), e);
@@ -304,13 +343,14 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
             
             LOG.info("✅ User created: {}", user.getID());
             
-            // Add to administrators group
+            // Add to administrators group or grant direct permissions
             Group admins = (Group) userManager.getAuthorizable("administrators");
             if (admins != null) {
                 admins.addMember(user);
                 LOG.info("✅ User added to administrators group");
             } else {
-                LOG.warn("⚠️  Administrators group not found");
+                LOG.info("ℹ️  No administrators group - granting direct permissions");
+                grantAdminPermissions(session, user);
             }
             
             // Save changes
@@ -332,5 +372,105 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
         }
     }
     
+    /**
+     * Grants admin-like permissions directly via ACLs.
+     * Used in Sling (non-AEM) environments where groups don't exist.
+     */
+    private void grantAdminPermissions(Session session, User user) {
+        try {
+            AccessControlManager acm = session.getAccessControlManager();
+            Principal principal = user.getPrincipal();
+            
+            // Paths to grant permissions on (needed for full Sling functionality)
+            String[] contentPaths = {
+                "/content",
+                "/content/blockchain-aem",
+                "/apps",
+                "/libs",
+                "/bin",
+                "/oak-chain",
+                "/var"
+            };
+            
+            // Get jcr:all privilege
+            Privilege[] privileges = new Privilege[] {
+                acm.privilegeFromName(Privilege.JCR_ALL)
+            };
+            
+            for (String path : contentPaths) {
+                try {
+                    if (!session.nodeExists(path)) {
+                        continue;
+                    }
+                    
+                    // Get or create ACL
+                    JackrabbitAccessControlList acl = null;
+                    for (AccessControlPolicy policy : acm.getPolicies(path)) {
+                        if (policy instanceof JackrabbitAccessControlList) {
+                            acl = (JackrabbitAccessControlList) policy;
+                            break;
+                        }
+                    }
+                    
+                    if (acl == null) {
+                        AccessControlPolicyIterator it = acm.getApplicablePolicies(path);
+                        while (it.hasNext()) {
+                            AccessControlPolicy policy = it.nextAccessControlPolicy();
+                            if (policy instanceof JackrabbitAccessControlList) {
+                                acl = (JackrabbitAccessControlList) policy;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (acl != null) {
+                        acl.addAccessControlEntry(principal, privileges);
+                        acm.setPolicy(path, acl);
+                        LOG.info("✅ Granted jcr:all on {}", path);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("⚠️  Failed to set ACL on {}: {}", path, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("❌ Failed to grant admin permissions", e);
+        }
+    }
+    
+    /**
+     * Ensure an existing user has proper permissions (called on every login).
+     * This handles cases where permissions were added after the user was created.
+     */
+    private void ensureUserPermissions(String walletAddress) {
+        LOG.info("🔄 Ensuring permissions for existing user: {}", walletAddress);
+        
+        ResourceResolver serviceResolver = null;
+        try {
+            Map<String, Object> authInfo = new HashMap<>();
+            authInfo.put(ResourceResolverFactory.SUBSERVICE, "blockchain-aem-registration");
+            serviceResolver = resolverFactory.getServiceResourceResolver(authInfo);
+            
+            javax.jcr.Session session = serviceResolver.adaptTo(javax.jcr.Session.class);
+            if (session == null) {
+                LOG.warn("⚠️  Could not get session for permission update");
+                return;
+            }
+            
+            UserManager userManager = ((org.apache.jackrabbit.api.JackrabbitSession) session).getUserManager();
+            User user = (User) userManager.getAuthorizable(walletAddress);
+            
+            if (user != null) {
+                grantAdminPermissions(session, user);
+                session.save();
+                LOG.info("✅ Permissions updated for: {}", walletAddress);
+            }
+        } catch (Exception e) {
+            LOG.warn("⚠️  Could not update permissions: {}", e.getMessage());
+        } finally {
+            if (serviceResolver != null) {
+                serviceResolver.close();
+            }
+        }
+    }
 }
 
