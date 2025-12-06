@@ -33,6 +33,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.servlet.Servlet;
@@ -41,6 +42,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Base64;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 
 /**
  * Servlet for biometric authentication via Web3BiometricLoginModule.
@@ -94,10 +98,69 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
             String credentialId = requestData.get("credentialId").getAsString();
             String signature = requestData.get("signature").getAsString();
             String challenge = requestData.get("challenge").getAsString();
-            String publicKey = requestData.get("publicKey").getAsString();
+            String publicKey = requestData.has("publicKey") ? requestData.get("publicKey").getAsString() : null;
+            String authenticatorData = requestData.has("authenticatorData") ? requestData.get("authenticatorData").getAsString() : null;
+            String clientDataJSON = requestData.has("clientDataJSON") ? requestData.get("clientDataJSON").getAsString() : null;
             
             LOG.info("🔐 Biometric login attempt for wallet: {}", walletAddress);
             LOG.info("📍 Credential ID: {}", credentialId);
+            
+            // Compute the WebAuthn signed message: authenticatorData || SHA256(clientDataJSON)
+            byte[] signedMessage;
+            if (authenticatorData != null && clientDataJSON != null) {
+                byte[] authData = Base64.getDecoder().decode(authenticatorData);
+                byte[] clientData = Base64.getDecoder().decode(clientDataJSON);
+                
+                // SHA-256 of clientDataJSON
+                java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] clientDataHash = digest.digest(clientData);
+                
+                // Concatenate: authenticatorData || clientDataHash
+                signedMessage = new byte[authData.length + clientDataHash.length];
+                System.arraycopy(authData, 0, signedMessage, 0, authData.length);
+                System.arraycopy(clientDataHash, 0, signedMessage, authData.length, clientDataHash.length);
+                
+                LOG.info("📝 WebAuthn signed message: {} bytes (authData={}, clientDataHash=32)", 
+                    signedMessage.length, authData.length);
+            } else {
+                // Fallback to raw challenge (won't work for WebAuthn but useful for debugging)
+                signedMessage = Base64.getDecoder().decode(challenge);
+                LOG.warn("⚠️ Using raw challenge as signed message (WebAuthn requires authenticatorData + clientDataJSON)");
+            }
+            
+            // Validate and potentially fetch public key from JCR
+            if (publicKey != null) {
+                byte[] pkBytes = Base64.getDecoder().decode(publicKey);
+                LOG.info("🔑 Client provided public key: {} bytes", pkBytes.length);
+                
+                // Check if this looks like a signature (DER-encoded, 70-72 bytes starting with 0x30)
+                // instead of a public key (SPKI 91 bytes or raw 65 bytes)
+                if (pkBytes.length >= 70 && pkBytes.length <= 75 && pkBytes[0] == 0x30) {
+                    LOG.warn("⚠️ Client sent signature ({} bytes) instead of public key! Looking up from JCR...", pkBytes.length);
+                    publicKey = null; // Force lookup from JCR
+                }
+            }
+            
+            // If no valid public key, try to look it up from JCR
+            if (publicKey == null) {
+                LOG.info("🔍 Looking up public key from JCR for wallet: {}", walletAddress);
+                ResourceResolver resolver = request.getResourceResolver();
+                String nodeName = walletAddress.replace("0x", "wallet_");
+                Resource credentialResource = resolver.getResource("/var/blockchain-aem/credentials/" + nodeName);
+                
+                if (credentialResource != null) {
+                    Node credentialNode = credentialResource.adaptTo(Node.class);
+                    if (credentialNode != null && credentialNode.hasProperty("publicKey")) {
+                        publicKey = credentialNode.getProperty("publicKey").getString();
+                        byte[] pkBytes = Base64.getDecoder().decode(publicKey);
+                        LOG.info("✅ Found public key in JCR: {} bytes", pkBytes.length);
+                    }
+                }
+                
+                if (publicKey == null) {
+                    throw new Exception("Public key not found. Please re-register your biometric credential.");
+                }
+            }
             
             // Create Web3BiometricCredentials using SimpleCredentials as a carrier
             // The Web3BiometricLoginModule will recognize this pattern
@@ -107,7 +170,7 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
             jcrCreds.setAttribute("web3.biometric.credentialId", credentialId);
             jcrCreds.setAttribute("web3.biometric.publicKey", Base64.getDecoder().decode(publicKey));
             jcrCreds.setAttribute("web3.biometric.signature", Base64.getDecoder().decode(signature));
-            jcrCreds.setAttribute("web3.biometric.challenge", Base64.getDecoder().decode(challenge));
+            jcrCreds.setAttribute("web3.biometric.challenge", signedMessage); // WebAuthn signed message (not raw challenge)
             jcrCreds.setAttribute("web3.biometric.walletAddress", walletAddress);
             
             // Attempt login using injected SlingRepository - this triggers the Oak JAAS chain
@@ -141,7 +204,7 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
                 LOG.info("   ✅ Sling HTTP session created");
                 LOG.info("   ✅ Sling will maintain this session for subsequent requests");
                 
-                // ✅ Create and set the authentication cookie (matching MetaMask pattern)
+                // ✅ Create and set the authentication cookies (matching MetaMask pattern)
                 Cookie authCookie = new Cookie("blockchain.aem.auth", walletAddress);
                 authCookie.setPath("/");
                 authCookie.setMaxAge(24 * 60 * 60); // 24 hours
@@ -149,10 +212,18 @@ public class BiometricLoginServlet extends SlingAllMethodsServlet {
                 authCookie.setSecure(request.isSecure());
                 response.addCookie(authCookie);
                 
-                LOG.info("   ✅ Web3 authentication cookie set for biometric login");
-                LOG.info("   - Cookie name: blockchain.aem.auth");
-                LOG.info("   - Value: {}", walletAddress);
-                LOG.info("   - Will be recognized by Web3AuthenticationHandler on subsequent requests");
+                // Login marker cookie - signals fresh login to Web3AuthenticationHandler
+                // This triggers AUTH_INFO_LOGIN for proper Sling session integration
+                Cookie loginMarker = new Cookie("blockchain.aem.login", "true");
+                loginMarker.setPath("/");
+                loginMarker.setMaxAge(60); // Short-lived, just for the redirect
+                loginMarker.setHttpOnly(true);
+                response.addCookie(loginMarker);
+                
+                LOG.info("   ✅ Web3 authentication cookies set for biometric login");
+                LOG.info("   - Auth cookie: blockchain.aem.auth={}", walletAddress);
+                LOG.info("   - Login marker: blockchain.aem.login=true (triggers Sling LOGIN event)");
+                LOG.info("   - Web3AuthenticationHandler will process on next request");
                 
                 // Success response (Sling will handle session management)
                 JsonObject successResponse = new JsonObject();

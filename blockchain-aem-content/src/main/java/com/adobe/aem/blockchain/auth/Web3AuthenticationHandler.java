@@ -20,6 +20,7 @@ package com.adobe.aem.blockchain.auth;
 
 import com.adobe.aem.blockchain.utils.PasswordDerivation;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.auth.core.AuthConstants;
 import org.apache.sling.auth.core.spi.AuthenticationHandler;
 import org.apache.sling.auth.core.spi.AuthenticationInfo;
 import org.apache.sling.auth.core.spi.DefaultAuthenticationFeedbackHandler;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 /**
@@ -40,6 +42,13 @@ import java.io.IOException;
  * - Extracts wallet address from cookie
  * - Provides authentication info to ResourceResolverFactory
  * - Integrates with Oak JAAS (Web3BiometricLoginModule)
+ * - Sets AUTH_INFO_LOGIN on first login to trigger Sling's session persistence
+ * 
+ * Flow:
+ * 1. Login servlet authenticates via Oak JAAS, sets auth cookie + "login marker" cookie
+ * 2. extractCredentials() detects login marker, returns AuthInfo with AUTH_INFO_LOGIN
+ * 3. Sling creates ResourceResolver, fires LOGIN event, establishes HTTP session
+ * 4. Subsequent requests: extractCredentials() returns AuthInfo without AUTH_INFO_LOGIN
  */
 @Component(
     service = AuthenticationHandler.class,
@@ -60,19 +69,28 @@ import java.io.IOException;
         // Login endpoints (/bin/blockchain-aem/biometric-login, /bin/blockchain-aem/metamask-login, etc.) 
         // are PUBLIC and don't require this handler
         
-        AuthenticationHandler.TYPE_PROPERTY + "=Web3 Authentication Handler",
-        "service.ranking:Integer=50"  // Lower than form auth, so admin login still works
+        AuthenticationHandler.TYPE_PROPERTY + "=WEB3",
+        "service.ranking:Integer=100"  // Higher ranking to take precedence
     }
 )
 public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHandler implements AuthenticationHandler {
     
     private static final Logger LOG = LoggerFactory.getLogger(Web3AuthenticationHandler.class);
+    
+    /** Main authentication cookie - contains wallet address */
     private static final String AUTH_COOKIE_NAME = "blockchain.aem.auth";
+    
+    /** Login marker cookie - indicates fresh login, triggers AUTH_INFO_LOGIN */
+    private static final String LOGIN_MARKER_COOKIE = "blockchain.aem.login";
+    
+    /** Session attribute to track authenticated wallet */
+    private static final String SESSION_ATTR_WALLET = "blockchain.aem.wallet";
+    
     private static final String AUTH_TYPE = "WEB3";
     
     @Override
     public AuthenticationInfo extractCredentials(HttpServletRequest request, HttpServletResponse response) {
-        LOG.debug("🔐 Web3AuthenticationHandler.extractCredentials() called for: {}", request.getRequestURI());
+        LOG.debug("🔐 Web3AuthenticationHandler.extractCredentials() for: {}", request.getRequestURI());
         
         // Look for our authentication cookie
         Cookie[] cookies = request.getCookies();
@@ -82,27 +100,36 @@ public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHand
         }
         
         String walletAddress = null;
+        boolean isLoginMarker = false;
+        
         for (Cookie cookie : cookies) {
             if (AUTH_COOKIE_NAME.equals(cookie.getName())) {
                 walletAddress = cookie.getValue();
-                LOG.debug("   Found Web3 auth cookie for wallet: {}", walletAddress);
-                break;
+            } else if (LOGIN_MARKER_COOKIE.equals(cookie.getName())) {
+                isLoginMarker = "true".equals(cookie.getValue());
             }
         }
         
-        if (walletAddress == null) {
+        if (walletAddress == null || walletAddress.isEmpty()) {
             LOG.debug("   No Web3 auth cookie found");
             return null;
         }
         
+        LOG.debug("   Found Web3 auth cookie for wallet: {}", walletAddress);
+        
+        // Check if this is a fresh login (login marker set and session doesn't have our attribute)
+        HttpSession session = request.getSession(false);
+        boolean isFreshLogin = isLoginMarker || 
+            (session == null) || 
+            (!walletAddress.equals(session.getAttribute(SESSION_ATTR_WALLET)));
+        
         // Create AuthenticationInfo with credentials for Oak JAAS
-        // ResourceResolverFactory will use these to authenticate via repository.login()
         try {
             String derivedPassword = PasswordDerivation.derivePassword(walletAddress);
             
             AuthenticationInfo info = new AuthenticationInfo(AUTH_TYPE, walletAddress);
             
-            // Set both the user ID and password that Sling's JCR ResourceProvider expects
+            // Set credentials for ResourceResolverFactory
             info.put(ResourceResolverFactory.USER, walletAddress);
             info.put(ResourceResolverFactory.PASSWORD, derivedPassword.toCharArray());
             
@@ -111,16 +138,31 @@ public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHand
                 walletAddress,
                 derivedPassword.toCharArray()
             );
-            
-            // CRITICAL: Set attributes that Web3BiometricLoginModule expects
             jcrCreds.setAttribute("web3.metamask.verified", Boolean.TRUE);
             jcrCreds.setAttribute("web3.metamask.address", walletAddress);
-            
-            // Provide JCR credentials to Sling
             info.put("user.jcr.credentials", jcrCreds);
             
-            LOG.info("✅ Web3 authentication extracted for wallet: {}", walletAddress);
-            LOG.debug("   Provided USER={}, PASSWORD=(derived), JCR credentials with Web3 attributes", walletAddress);
+            // CRITICAL: If this is a fresh login, set AUTH_INFO_LOGIN
+            // This tells Sling to fire the LOGIN event and establish proper session
+            if (isFreshLogin) {
+                LOG.info("🎉 Fresh Web3 login detected for wallet: {}", walletAddress);
+                info.put(AuthConstants.AUTH_INFO_LOGIN, Boolean.TRUE);
+                
+                // Clear the login marker cookie (one-time use)
+                if (isLoginMarker) {
+                    Cookie clearMarker = new Cookie(LOGIN_MARKER_COOKIE, "");
+                    clearMarker.setPath("/");
+                    clearMarker.setMaxAge(0);
+                    response.addCookie(clearMarker);
+                }
+                
+                // Store wallet in session on successful authentication
+                // (will be set after ResourceResolver is created)
+            } else {
+                LOG.debug("   Existing session for wallet: {}", walletAddress);
+            }
+            
+            LOG.info("✅ Web3 credentials extracted: user={}, freshLogin={}", walletAddress, isFreshLogin);
             return info;
             
         } catch (Exception e) {
@@ -137,7 +179,7 @@ public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHand
         String loginUrl = "/starter.html";
         String resource = request.getParameter("resource");
         if (resource != null && !resource.isEmpty()) {
-            loginUrl += "?resource=" + resource;
+            loginUrl += "?resource=" + java.net.URLEncoder.encode(resource, "UTF-8");
         }
         
         LOG.info("   Redirecting to login: {}", loginUrl);
@@ -150,12 +192,45 @@ public class Web3AuthenticationHandler extends DefaultAuthenticationFeedbackHand
         LOG.info("🔐 Web3AuthenticationHandler.dropCredentials() - logging out");
         
         // Clear the authentication cookie
-        Cookie cookie = new Cookie(AUTH_COOKIE_NAME, "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        Cookie authCookie = new Cookie(AUTH_COOKIE_NAME, "");
+        authCookie.setPath("/");
+        authCookie.setMaxAge(0);
+        response.addCookie(authCookie);
         
-        LOG.info("   Web3 auth cookie cleared");
+        // Clear the login marker cookie
+        Cookie markerCookie = new Cookie(LOGIN_MARKER_COOKIE, "");
+        markerCookie.setPath("/");
+        markerCookie.setMaxAge(0);
+        response.addCookie(markerCookie);
+        
+        // Invalidate HTTP session
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.removeAttribute(SESSION_ATTR_WALLET);
+            session.invalidate();
+        }
+        
+        LOG.info("   Web3 authentication cleared: cookies + session");
+    }
+    
+    /**
+     * Called after successful authentication.
+     * Store the wallet in session to track authenticated state.
+     * 
+     * @return true if request processing should stop (redirect sent), false to continue
+     */
+    @Override
+    public boolean authenticationSucceeded(HttpServletRequest request, HttpServletResponse response, 
+                                           AuthenticationInfo authInfo) {
+        String wallet = authInfo.getUser();
+        if (wallet != null) {
+            HttpSession session = request.getSession(true);
+            session.setAttribute(SESSION_ATTR_WALLET, wallet);
+            LOG.info("✅ Web3 auth succeeded, wallet stored in session: {}", wallet);
+        }
+        
+        // Call parent to handle any redirect
+        return super.authenticationSucceeded(request, response, authInfo);
     }
 }
 

@@ -31,26 +31,6 @@
         {
             "id":"com.adobe.aem.blockchain:blockchain-aem-content:1.0.0-SNAPSHOT",
             "start-order":"20"
-        },
-        {
-            "id":"com.composum.nodes:composum-nodes-commons:${composum.nodes.version}",
-            "start-order":"20"
-        },
-        {
-            "id":"com.composum.nodes:composum-nodes-console:${composum.nodes.version}",
-            "start-order":"20"
-        },
-        {
-            "id":"com.composum.nodes:composum-nodes-jslibs:${composum.nodes.version}",
-            "start-order":"20"
-        },
-        {
-            "id":"com.composum.nodes:composum-nodes-pckgmgr:${composum.nodes.version}",
-            "start-order":"20"
-        },
-        {
-            "id":"com.composum.nodes:composum-nodes-usermgr:${composum.nodes.version}",
-            "start-order":"20"
         }
     ],
     "configurations":{

@@ -38,7 +38,6 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
-import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.auth.core.spi.AuthenticationInfo;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.servlets.annotations.SlingServletPaths;
@@ -82,9 +81,6 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
     
     @Reference
     private SlingRepository repository;
-    
-    @Reference
-    private AuthenticationSupport authSupport;
 
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) 
@@ -176,8 +172,8 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 LOG.info("   Session user: {}", jcrSession.getUserID());
                 LOG.info("   Auth method: Web3BiometricLoginModule");
                 
-                // Step 2: Set Web3 authentication cookie
-                // This will be recognized by our Web3AuthenticationHandler
+                // Step 2: Set Web3 authentication cookies
+                // Main auth cookie - contains wallet address
                 Cookie authCookie = new Cookie("blockchain.aem.auth", address);
                 authCookie.setPath("/");
                 authCookie.setMaxAge(24 * 60 * 60); // 24 hours
@@ -185,36 +181,31 @@ public class MetaMaskLoginServlet extends SlingAllMethodsServlet {
                 authCookie.setSecure(false); // Set to true in production with HTTPS
                 response.addCookie(authCookie);
                 
-                LOG.info("   ✅ Web3 authentication cookie set");
-                LOG.info("   - Cookie name: blockchain.aem.auth");
-                LOG.info("   - Value: {}", address);
-                LOG.info("   - Will be recognized by Web3AuthenticationHandler on subsequent requests");
+                // Login marker cookie - signals fresh login to Web3AuthenticationHandler
+                // This triggers AUTH_INFO_LOGIN for proper Sling session integration
+                Cookie loginMarker = new Cookie("blockchain.aem.login", "true");
+                loginMarker.setPath("/");
+                loginMarker.setMaxAge(60); // Short-lived, just for the redirect
+                loginMarker.setHttpOnly(true);
+                response.addCookie(loginMarker);
+                
+                LOG.info("   ✅ Web3 authentication cookies set");
+                LOG.info("   - Auth cookie: blockchain.aem.auth={}", address);
+                LOG.info("   - Login marker: blockchain.aem.login=true (triggers Sling LOGIN event)");
+                LOG.info("   - Web3AuthenticationHandler will process on next request");
                 
                 // ═══════════════════════════════════════════════════════════════════
-                // Step 3: Integrate with Sling authentication framework
-                // CRITICAL: Must do this BEFORE sending response!
-                // This creates an HTTP session and sets the authentication state
+                // Step 3: Sling Token Integration via Web3AuthenticationHandler
+                // The login marker cookie signals fresh login to Web3AuthenticationHandler
+                // On next request, it will set AUTH_INFO_LOGIN triggering proper Sling session
                 // ═══════════════════════════════════════════════════════════════════
-                LOG.info("🔗 Registering authentication with Sling HTTP session...");
+                LOG.info("🔗 Sling integration via Web3AuthenticationHandler...");
+                LOG.info("   - Login marker cookie set (triggers AUTH_INFO_LOGIN on next request)");
+                LOG.info("   - Web3AuthenticationHandler will handle proper Sling session creation");
+                LOG.info("   - LOGIN event will be fired after successful ResourceResolver acquisition");
                 
-                // Create AuthenticationInfo for Sling
-                AuthenticationInfo authInfo = new AuthenticationInfo("WEB3", address);
-                authInfo.put(ResourceResolverFactory.USER, address);
-                authInfo.put(ResourceResolverFactory.PASSWORD, PasswordDerivation.derivePassword(address).toCharArray());
-                authInfo.put("user.jcr.session", jcrSession); // Pass the live JCR session
-                
-                // Integrate with Sling authentication framework to create HTTP session
-                authSupport.handleSecurity(request, response);
-                
-                // Set request attribute that Sling auth will recognize
-                request.setAttribute("user.jcr.session", jcrSession);
-                
-                LOG.info("   ✅ JCR session attached to HTTP request");
-                LOG.info("   ✅ Sling HTTP session created");
-                LOG.info("   ✅ Sling will maintain this session for subsequent requests");
-                
-                // DON'T logout - Sling needs this session for the HTTP session!
-                // The JCR session is now owned by Sling's authentication framework
+                // Close this JCR session - Web3AuthenticationHandler will create new one via Sling
+                jcrSession.logout();
                 
                 JsonObject responseData = new JsonObject();
                 responseData.addProperty("success", true);

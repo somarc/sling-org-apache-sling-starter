@@ -28,10 +28,13 @@ import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Base64;
 
 /**
  * Servlet to handle biometric wallet registration (EIP-7951 P-256 flow).
@@ -80,35 +83,78 @@ public class BiometricRegisterServlet extends SlingAllMethodsServlet {
             String address = requestData.get("address").getAsString();
             String credentialId = requestData.get("credentialId").getAsString();
             
+            // Get public key - it can be an array of bytes or a base64 string
+            String publicKeyBase64 = null;
+            if (requestData.has("pubKey")) {
+                if (requestData.get("pubKey").isJsonArray()) {
+                    // Array of byte values - convert to base64
+                    byte[] pubKeyBytes = new byte[requestData.getAsJsonArray("pubKey").size()];
+                    for (int i = 0; i < pubKeyBytes.length; i++) {
+                        pubKeyBytes[i] = requestData.getAsJsonArray("pubKey").get(i).getAsByte();
+                    }
+                    publicKeyBase64 = Base64.getEncoder().encodeToString(pubKeyBytes);
+                } else {
+                    publicKeyBase64 = requestData.get("pubKey").getAsString();
+                }
+            }
+            
             LOG.info("  📍 Address: {}", address);
             LOG.info("  🆔 Credential ID: {}", credentialId);
+            LOG.info("  🔑 Public Key: {} bytes", publicKeyBase64 != null ? Base64.getDecoder().decode(publicKeyBase64).length : 0);
             
-            // TODO: Store credential mapping
-            // Map credentialId -> address for future authentication
-            // Store in JCR: /var/blockchain-aem/credentials/{credentialId}
+            // Store credential mapping in JCR: /var/blockchain-aem/credentials/{address}
+            Session session = request.getResourceResolver().adaptTo(Session.class);
+            if (session != null) {
+                try {
+                    // Create /var/blockchain-aem/credentials path if it doesn't exist
+                    Node varNode = session.getRootNode();
+                    if (!varNode.hasNode("var")) {
+                        varNode = varNode.addNode("var", "sling:Folder");
+                    } else {
+                        varNode = varNode.getNode("var");
+                    }
+                    
+                    Node blockchainNode;
+                    if (!varNode.hasNode("blockchain-aem")) {
+                        blockchainNode = varNode.addNode("blockchain-aem", "sling:Folder");
+                    } else {
+                        blockchainNode = varNode.getNode("blockchain-aem");
+                    }
+                    
+                    Node credentialsNode;
+                    if (!blockchainNode.hasNode("credentials")) {
+                        credentialsNode = blockchainNode.addNode("credentials", "sling:Folder");
+                    } else {
+                        credentialsNode = blockchainNode.getNode("credentials");
+                    }
+                    
+                    // Store credential data under wallet address (sanitized for JCR node name)
+                    String nodeName = address.replace("0x", "wallet_");
+                    Node credentialNode;
+                    if (credentialsNode.hasNode(nodeName)) {
+                        credentialNode = credentialsNode.getNode(nodeName);
+                    } else {
+                        credentialNode = credentialsNode.addNode(nodeName, "nt:unstructured");
+                    }
+                    
+                    credentialNode.setProperty("walletAddress", address);
+                    credentialNode.setProperty("credentialId", credentialId);
+                    if (publicKeyBase64 != null) {
+                        credentialNode.setProperty("publicKey", publicKeyBase64);
+                    }
+                    credentialNode.setProperty("registeredAt", System.currentTimeMillis());
+                    
+                    session.save();
+                    LOG.info("  💾 Credential stored at /var/blockchain-aem/credentials/{}", nodeName);
+                    
+                } catch (Exception e) {
+                    LOG.warn("  ⚠️ Could not store credential in JCR: {}", e.getMessage());
+                }
+            }
             
-            LOG.info("  💾 Storing credential mapping...");
-            
-            // TODO: Register with validators
-            // POST to validator network to whitelist address for write proposals
-            // Endpoint: http://localhost:8090/api/register-author
-            
-            LOG.info("  📡 Registering with validators...");
-            
-            // TODO: On-chain registration (post-Fusaka)
-            // Call smart contract to register P-256 public key
-            // Uses EIP-7951 precompile at 0x100 for verification
-            // Cost: ~6,900 gas
-            
+            LOG.info("  📡 Validator registration (demo mode - skipped)");
             LOG.info("  ⛓️  On-chain registration (demo mode - skipped)");
-            LOG.warn("   Post-Fusaka (Dec 3, 2025): Will register pubkey on-chain");
-            
-            // TODO: Create Oak user via Oak-Auth-Web3
-            // The Web3BiometricLoginModule will handle this on first login
-            // For now, just return success
-            
-            LOG.info("  👤 User will be created on first biometric login");
-            LOG.info("     via Oak-Auth-Web3 LoginModule");
+            LOG.info("  👤 User will be created on first biometric login via Oak-Auth-Web3");
             
             JsonObject responseData = new JsonObject();
             responseData.addProperty("success", true);
